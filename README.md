@@ -30,7 +30,9 @@ bundle install
 
 ### Connecting and Streaming to Icecast
 
-Create a connection to your Icecast 2 server:
+#### 1. Automatic Lifecycle (Block Form)
+
+You can pass a block to `connect`, which automatically handles disconnecting when the block completes (even if an exception is raised):
 
 ```ruby
 require 'shout'
@@ -56,7 +58,7 @@ connection = Shout::Connection.new do |conn|
   conn.configuration.meta.url = "https://example.com"
 end
 
-# Connect to Icecast
+# Connect to Icecast with automatic disconnect
 connection.connect do |conn|
   # Update song metadata
   conn.update_metadata(song: "Queen - Bohemian Rhapsody")
@@ -71,7 +73,60 @@ connection.connect do |conn|
     end
   end
 end
-# Automatically disconnects when the block exits
+# Automatically disconnected once the block exits
+```
+
+#### 2. Manual Lifecycle (Holding the Connection in a Field)
+
+If you need a long-running stream managed across multiple methods or worker events, call `connect` without a block. This returns the connection instance, allowing you to store it in an instance variable (field) and explicitly call `disconnect` (or `close`) later:
+
+```ruby
+require 'shout'
+
+class RadioBroadcaster
+  attr_reader :connection
+
+  def initialize
+    @connection = Shout::Connection.new do |conn|
+      conn.configuration.host = "127.0.0.1"
+      conn.configuration.port = 8000
+      conn.configuration.mount = "/stream.mp3"
+      conn.configuration.user = "source"
+      conn.configuration.password = "hackme"
+      conn.configuration.protocol = :http
+      conn.configuration.format = :mp3
+    end
+  end
+
+  def start
+    # Connects and keeps the socket open
+    @connection.connect
+  end
+
+  def broadcast(chunk)
+    @connection.send_data(chunk)
+    @connection.sync
+  end
+
+  def change_track(title)
+    @connection.update_metadata(song: title)
+  end
+
+  def stop
+    # Manually close the connection when done
+    @connection.disconnect if @connection.connected?
+  end
+end
+
+# Example usage:
+broadcaster = RadioBroadcaster.new
+broadcaster.start
+
+broadcaster.change_track("Led Zeppelin - Immigrant Song")
+broadcaster.broadcast(audio_data)
+
+# ... later in your application lifecycle:
+broadcaster.stop
 ```
 
 ### Sending Metadata
