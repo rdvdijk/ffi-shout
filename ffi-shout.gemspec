@@ -3,14 +3,14 @@
 require_relative "lib/shout/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "shout-ruby-ffi"
+  spec.name          = "ffi-shout"
   spec.version       = Shout::VERSION
   spec.authors       = ["Roel van Dijk"]
   spec.email         = ["roel@rustradio.org"]
 
   spec.summary       = "Easily connect and stream audio/metadata to Icecast using libshout."
   spec.description   = "Ruby FFI wrapper around libshout for streaming to Icecast servers."
-  spec.homepage      = "https://github.com/rdvdijk/shout-ruby-ffi"
+  spec.homepage      = "https://github.com/rdvdijk/ffi-shout"
   spec.license       = "MIT"
   spec.required_ruby_version = ">= 3.2"
 

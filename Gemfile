@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in shout-ruby-ffi.gemspec
+# Specify your gem's dependencies in ffi-shout.gemspec
 gemspec
 
 group :development, :test do

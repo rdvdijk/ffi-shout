@@ -51,7 +51,7 @@ module Shout
       it "raises LoadError when libshout is too old" do
         fake_version("2.4.5")
         expect { described_class.ensure_supported! }
-          .to raise_error(LoadError, "shout-ruby-ffi needs libshout 2.4.6 or newer, but found 2.4.5")
+          .to raise_error(LoadError, "ffi-shout needs libshout 2.4.6 or newer, but found 2.4.5")
       end
     end
   end

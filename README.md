@@ -1,4 +1,4 @@
-# Shout (shout-ruby-ffi)
+# ffi-shout
 
 Ruby FFI bindings for [libshout](https://icecast.org/), the streaming library for Icecast.
 
@@ -21,7 +21,7 @@ Older distributions may ship an older libshout; check with `pkg-config --modvers
 Add to your Gemfile:
 
 ```ruby
-gem "shout-ruby-ffi"
+gem "ffi-shout"
 ```
 
 And run:
@@ -29,6 +29,10 @@ And run:
 ```bash
 bundle install
 ```
+
+Then load it with `require "shout"` (or `require "ffi-shout"`; Bundler's auto-require uses that one). The library lives in the `Shout` module.
+
+The older, unmaintained [ruby-shout](https://rubygems.org/gems/ruby-shout) gem (a C extension) also installs `shout.rb` and defines a top-level `Shout` class, so the two gems can't be used together.
 
 ## Usage
 

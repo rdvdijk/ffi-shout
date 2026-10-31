@@ -63,3 +63,7 @@ Metrics/ClassLength:
 # change the public TypeConvertor API for no benefit.
 Naming/PredicateMethod:
   AllowedMethods: [convert_return]
+
+# The entry point is named after the gem (ffi-shout), as Bundler.require expects.
+Naming/FileName:
+  Exclude: ["lib/ffi-shout.rb"]

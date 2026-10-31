@@ -17,7 +17,7 @@ module Shout
         version = new
         return version if version >= Gem::Version.new(MINIMUM)
 
-        raise LoadError, "shout-ruby-ffi needs libshout #{MINIMUM} or newer, but found #{version.number}"
+        raise LoadError, "ffi-shout needs libshout #{MINIMUM} or newer, but found #{version.number}"
       end
 
       def initialize
