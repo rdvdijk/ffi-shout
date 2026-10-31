@@ -27,7 +27,7 @@ module Shout
     FFI::Version.new
   end
 
-  def self.new(*, &)
-    Connection.new(*, &)
+  def self.new(**, &)
+    Connection.new(**, &)
   end
 end

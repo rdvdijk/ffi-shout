@@ -24,7 +24,9 @@ module Shout
 
     delegate_to_shout :host, :port, :agent, :tls, :ca_directory, :ca_file,
                       :allowed_ciphers, :user, :password, :client_certificate,
-                      :mount, :public, :content_language, :protocol, :nonblocking
+                      :mount, :content_language, :protocol
+
+    delegate_to_shout :public, :nonblocking, predicate: true
 
     # Obsolete methods supported by libshout for backwards compatibility
     delegate_to_shout :name, :url, :genre, :description, :format, :dumpfile

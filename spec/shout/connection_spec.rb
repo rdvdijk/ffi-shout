@@ -22,6 +22,17 @@ module Shout
         expect(conn.configuration.port).to be 8080
         expect(conn.configuration.mount).to eql "/live"
       end
+
+      it "raises ArgumentError for unknown attributes" do
+        expect do
+          described_class.new(host: "10.0.0.1", hots: "typo", prot: 1)
+        end.to raise_error(ArgumentError, "unknown attribute(s): hots, prot")
+      end
+
+      it "passes attributes through Connection.open" do
+        allow(::Shout).to receive(:shout_open).and_return(0)
+        expect(described_class.open(host: "10.0.0.2").configuration.host).to eql "10.0.0.2"
+      end
     end
 
     context "configuration" do
@@ -111,20 +122,23 @@ module Shout
         connection.send_data(data)
       end
 
-      it "aliases send, write and << to send_data" do
+      it "aliases write and << to send_data" do
         data = "audio chunk"
-        expect(::Shout).to receive(:shout_send).exactly(3).times.and_return(0)
+        expect(::Shout).to receive(:shout_send).twice.and_return(0)
 
-        connection.send(data)
         connection.write(data)
         connection << data
+      end
+
+      it "leaves Object#send alone" do
+        expect(connection.send(:connected?)).to be false
       end
 
       it "raises error when shout_send fails" do
         expect(::Shout).to receive(:shout_send).and_return(SHOUTERR_SOCKET)
         expect do
           connection.send_data("chunk")
-        end.to raise_error(SocketError)
+        end.to raise_error(SocketIOError)
       end
 
       it "sends raw unparsed data via shout_send_raw" do

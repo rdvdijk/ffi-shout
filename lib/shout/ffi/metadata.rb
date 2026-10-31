@@ -2,19 +2,18 @@
 
 module Shout
   module FFI
-    # ManagedStruct to automatically clean up shout_metadata_t when garbage collected.
-    class Metadata < ::FFI::ManagedStruct
-      layout :dummy, :char # Not actually used, but FFI needs a layout
+    # An owned shout_metadata_t handle. It is released with
+    # shout_metadata_free when it is garbage collected.
+    class Metadata < ::FFI::AutoPointer
+      def self.release(ptr)
+        ::Shout.shout_metadata_free(ptr)
+      end
 
       def initialize(ptr = nil)
         ptr ||= ::Shout.shout_metadata_new
         raise ::Shout::MallocError, "Unable to allocate shout_metadata_t structure" if ptr.nil? || ptr.null?
 
         super
-      end
-
-      def self.release(ptr)
-        ::Shout.shout_metadata_free(ptr)
       end
     end
   end

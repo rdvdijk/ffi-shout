@@ -70,6 +70,12 @@ module Shout
         it { is_expected.to delegate(:protocol) }
         it { is_expected.to delegate(:nonblocking) }
 
+        it "defines predicates only for the on/off flags" do
+          expect(configuration).to respond_to(:public?, :nonblocking?)
+          expect(configuration).not_to respond_to(:host?)
+          expect(configuration).not_to respond_to(:tls?)
+        end
+
         # Obsolete fields
         it { is_expected.to delegate(:name) }
         it { is_expected.to delegate(:url) }

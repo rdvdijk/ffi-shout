@@ -7,7 +7,7 @@ module Shout
       expect(InsaneError.ancestors).to include(ShoutError)
       expect(ConnectionError.ancestors).to include(ShoutError)
       expect(LoginError.ancestors).to include(ShoutError)
-      expect(SocketError.ancestors).to include(ShoutError)
+      expect(SocketIOError.ancestors).to include(ShoutError)
       expect(MallocError.ancestors).to include(ShoutError)
       expect(MetadataError.ancestors).to include(ShoutError)
       expect(ConnectedError.ancestors).to include(ShoutError)
@@ -17,6 +17,11 @@ module Shout
       expect(NoTLSError.ancestors).to include(ShoutError)
       expect(TLSBadCertError.ancestors).to include(ShoutError)
       expect(RetryError.ancestors).to include(ShoutError)
+    end
+
+    it "keeps Shout::SocketError as a deprecated alias of SocketIOError" do
+      expect(::Shout.const_get(:SocketError)).to be SocketIOError
+      expect(::Shout.const_get(:SocketError)).not_to be ::SocketError
     end
 
     describe ".check_error" do
@@ -40,8 +45,8 @@ module Shout
         expect { described_class.check_error(-3) }.to raise_error(LoginError)
       end
 
-      it "raises SocketError on SHOUTERR_SOCKET (-4)" do
-        expect { described_class.check_error(-4) }.to raise_error(SocketError)
+      it "raises SocketIOError on SHOUTERR_SOCKET (-4)" do
+        expect { described_class.check_error(-4) }.to raise_error(SocketIOError)
       end
 
       it "raises MallocError on SHOUTERR_MALLOC (-5)" do

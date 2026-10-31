@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Exception classes raised for libshout errors.
 module Shout
   class ShoutError < StandardError; end
 
@@ -7,7 +8,8 @@ module Shout
   class InsaneError < ShoutError; end
   class ConnectionError < ShoutError; end
   class LoginError < ShoutError; end
-  class SocketError < ShoutError; end
+  # SHOUTERR_SOCKET: an error while reading from or writing to the server.
+  class SocketIOError < ShoutError; end
   class MallocError < ShoutError; end
   class MetadataError < ShoutError; end
   class ConnectedError < ShoutError; end
@@ -18,13 +20,18 @@ module Shout
   class TLSBadCertError < ShoutError; end
   class RetryError < ShoutError; end
 
+  # Deprecated: use SocketIOError. Inside `module Shout` this name hid Ruby's
+  # own ::SocketError; it will be removed in a future release.
+  SocketError = SocketIOError
+  deprecate_constant :SocketError
+
   # Maps libshout's SHOUTERR_* return codes to exception classes.
   module Error
     ERROR_CLASSES = {
       -1 => InsaneError,
       -2 => ConnectionError,
       -3 => LoginError,
-      -4 => SocketError,
+      -4 => SocketIOError,
       -5 => MallocError,
       -6 => MetadataError,
       -7 => ConnectedError,

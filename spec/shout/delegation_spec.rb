@@ -12,7 +12,8 @@ module Shout
         attr_accessor :shout
 
         delegate_alias_to_shout foo: :mount
-        delegate_to_shout :public
+        delegate_to_shout :mount
+        delegate_to_shout :public, predicate: true
       end
     end
     let(:shout_pointer) { instance_double(::FFI::Pointer) }
@@ -32,9 +33,8 @@ module Shout
         delegator.foo
       end
 
-      it "delegates #foo? to Shout" do
-        expect(::Shout).to receive(:shout_get_mount).with(shout_pointer)
-        delegator.foo?
+      it "does not define #foo?" do
+        expect(delegator).not_to respond_to(:foo?)
       end
     end
 
@@ -49,7 +49,11 @@ module Shout
         delegator.public
       end
 
-      it "delegates #public? to Shout" do
+      it "does not define a predicate by default" do
+        expect(delegator).not_to respond_to(:mount?)
+      end
+
+      it "delegates #public? to Shout when predicate: true" do
         expect(::Shout).to receive(:shout_get_public).with(shout_pointer)
         delegator.public?
       end

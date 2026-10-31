@@ -4,10 +4,13 @@ module Shout
   # Class macros that define attribute readers and writers delegating to
   # libshout's shout_get_<name> / shout_set_<name> functions.
   module Delegation
-    def delegate_to_shout(*delegations)
-      delegations.each do |flag|
-        define_setter_delegator(flag, flag)
-        define_getter_delegator(flag, flag)
+    # Defines <name> and <name>= for each name. With predicate: true, also
+    # defines <name>? returning a boolean (for on/off flags such as :public).
+    def delegate_to_shout(*delegations, predicate: false)
+      delegations.each do |name|
+        define_setter_delegator(name, name)
+        define_getter_delegator(name, name)
+        define_predicate_delegator(name) if predicate
       end
     end
 
@@ -33,9 +36,11 @@ module Shout
       define_method(:"#{from}") do
         ::Shout.public_send(:"#{preset}_get_#{to}", shout)
       end
-      define_method(:"#{from}?") do
-        return_value = public_send(:"#{from}")
-        TypeConvertor.convert_return(return_value)
+    end
+
+    def define_predicate_delegator(name)
+      define_method(:"#{name}?") do
+        TypeConvertor.convert_return(public_send(name))
       end
     end
 

@@ -13,8 +13,8 @@ module Shout
       @metadata_timeout || HttpMetadata::DEFAULT_TIMEOUT
     end
 
-    def self.open(*, &)
-      connection = new(*)
+    def self.open(**, &)
+      connection = new(**)
       if block_given?
         connection.connect(&)
       else
@@ -23,12 +23,12 @@ module Shout
       end
     end
 
-    def initialize(attributes = {})
+    # Creates a connection, optionally setting configuration attributes, e.g.
+    # Connection.new(host: "localhost", port: 8000, mount: "/live.mp3").
+    # Raises ArgumentError for attributes the configuration doesn't have.
+    def initialize(**attributes)
       @shout = FFI::Shout.new
-
-      attributes.each do |key, value|
-        configuration.public_send(:"#{key}=", value) if configuration.respond_to?(:"#{key}=")
-      end
+      assign_attributes(attributes)
 
       yield self if block_given?
     end
@@ -79,7 +79,6 @@ module Shout
       Error.check_error(ret, shout)
       ret
     end
-    alias send send_data
     alias write send_data
     alias << send_data
 
@@ -139,6 +138,13 @@ module Shout
     end
 
     private
+
+    def assign_attributes(attributes)
+      unknown = attributes.keys.reject { |key| configuration.respond_to?(:"#{key}=") }
+      raise ArgumentError, "unknown attribute(s): #{unknown.join(", ")}" if unknown.any?
+
+      attributes.each { |key, value| configuration.public_send(:"#{key}=", value) }
+    end
 
     def coerce_metadata(value)
       case value
