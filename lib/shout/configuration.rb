@@ -7,12 +7,6 @@ module Shout
     def initialize(shout)
       @shout = shout
     end
-
-    private
-
-    def boolean_to_int(value)
-      Delegation::TypeConvertor.convert(value)
-    end
   end
 
   class Configuration < ConfigurationBase

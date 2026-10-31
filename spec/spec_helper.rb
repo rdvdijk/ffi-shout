@@ -20,6 +20,7 @@ require 'shout'
 $LOAD_PATH.unshift(File.expand_path('../../spec', __FILE__))
 require 'lib/setter_getter'
 require 'lib/custom_matchers'
+require 'lib/fake_http_server'
 
 RSpec.configure do |config|
   config.run_all_when_everything_filtered = true

@@ -3,6 +3,13 @@ module Shout
 
     attr_reader :shout
 
+    # Seconds to wait for the server when updating metadata over HTTP.
+    attr_writer :metadata_timeout
+
+    def metadata_timeout
+      @metadata_timeout || HttpMetadata::DEFAULT_TIMEOUT
+    end
+
     def self.open(*args, &block)
       connection = new(*args)
       if block_given?
@@ -116,8 +123,13 @@ module Shout
                    raise ArgumentError, "Expected Metadata, Hash, or String, got #{metadata_or_hash.class}"
                  end
 
-      ret = ::Shout.shout_set_metadata_utf8(shout, metadata.metadata_struct)
-      Error.check_error(ret, shout)
+      if http_protocol?
+        # libshout's own HTTP metadata update can loop forever; see HttpMetadata.
+        HttpMetadata.new(configuration, timeout: metadata_timeout).update(metadata)
+      else
+        ret = ::Shout.shout_set_metadata_utf8(shout, metadata.metadata_struct)
+        Error.check_error(ret, shout)
+      end
       metadata
     end
     alias_method :update_metadata, :send_metadata
@@ -125,6 +137,10 @@ module Shout
 
     def error
       ::Shout.shout_get_error(shout)
+    end
+
+    def http_protocol?
+      configuration.protocol == SHOUT_PROTOCOL_HTTP
     end
 
     def errno

@@ -6,6 +6,7 @@ require "shout/ffi"
 require "shout/delegation"
 require "shout/configuration"
 require "shout/metadata"
+require "shout/http_metadata"
 require "shout/connection"
 
 module Shout

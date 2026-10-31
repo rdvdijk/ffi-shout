@@ -120,26 +120,28 @@ module Shout
 
 
         # ----------------[ Actions ]----------------
+        # Calls that may wait on the network are attached with `blocking: true`
+        # so they release Ruby's GVL and don't freeze other threads.
 
         # Opens a connection to the server.  All parameters must already be set
-        attach_function :shout_open, [:shout_t], :int
+        attach_function :shout_open, [:shout_t], :int, blocking: true
 
         # Closes a connection to the server
-        attach_function :shout_close, [:shout_t], :int
+        attach_function :shout_close, [:shout_t], :int, blocking: true
 
         # Send data to the server, parsing it for format specific timing info
-        attach_function :shout_send, [:shout_t, :pointer, :size_t], :int
+        attach_function :shout_send, [:shout_t, :pointer, :size_t], :int, blocking: true
 
         # Send unparsed data to the server.
         # Returns the number of bytes written, or < 0 on error.
-        attach_function :shout_send_raw, [:shout_t, :pointer, :size_t], :ssize_t
+        attach_function :shout_send_raw, [:shout_t, :pointer, :size_t], :ssize_t, blocking: true
 
         # return the number of bytes currently on the write queue (only makes sense in
         # nonblocking mode).
         attach_function :shout_queuelen, [:shout_t], :ssize_t
 
         # Puts caller to sleep until it is time to send more data to the server
-        attach_function :shout_sync, [:shout_t], :void
+        attach_function :shout_sync, [:shout_t], :void, blocking: true
 
         # Amount of time in ms caller should wait before sending again
         attach_function :shout_delay, [:shout_t], :int
@@ -148,7 +150,7 @@ module Shout
         # ----------------[ MP3/AAC ONLY ]----------------
 
         # Sets MP3 metadata. Returns one of SHOUTERR_XXX.
-        attach_function :shout_set_metadata_utf8, [:shout_t, :shout_metadata_t], :int
+        attach_function :shout_set_metadata_utf8, [:shout_t, :shout_metadata_t], :int, blocking: true
 
         # Allocates a new metadata structure.  Must be freed by shout_metadata_free.
         attach_function :shout_metadata_new, [], :shout_metadata_t
@@ -186,7 +188,7 @@ module Shout
         attach_function :shout_set_dumpfile, [:shout_t, :string], :int
         attach_function :shout_get_dumpfile, [:shout_t], :string
 
-        attach_function :shout_set_metadata, [:shout_t, :shout_metadata_t], :int
+        attach_function :shout_set_metadata, [:shout_t, :shout_metadata_t], :int, blocking: true
 
       end
     end

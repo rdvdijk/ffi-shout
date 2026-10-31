@@ -166,47 +166,92 @@ module Shout
         }.to raise_error(UnconnectedError)
       end
 
-      it "sends metadata when connected from a String" do
-        allow(connection).to receive(:connected?).and_return(true)
-        expect(::Shout).to receive(:shout_set_metadata_utf8) do |shout, meta_ptr|
-          expect(shout).to eql connection.shout
-          expect(meta_ptr).to respond_to(:to_ptr)
-          0
-        end
-
-        meta = connection.send_metadata("Daft Punk - One More Time")
-        expect(meta["song"]).to eql "Daft Punk - One More Time"
-      end
-
-      it "sends metadata when connected from a Hash" do
-        allow(connection).to receive(:connected?).and_return(true)
-        expect(::Shout).to receive(:shout_set_metadata_utf8).and_return(0)
-
-        meta = connection.send_metadata(song: "Kraftwerk - The Robots")
-        expect(meta["song"]).to eql "Kraftwerk - The Robots"
-      end
-
-      it "sends metadata when connected from a Metadata instance" do
-        allow(connection).to receive(:connected?).and_return(true)
-        expect(::Shout).to receive(:shout_set_metadata_utf8).and_return(0)
-
-        metadata = Metadata.new(song: "Air - Sexy Boy")
-        expect(connection.send_metadata(metadata)).to eql metadata
-      end
-
-      it "aliases update_metadata and metadata= to send_metadata" do
-        allow(connection).to receive(:connected?).and_return(true)
-        expect(::Shout).to receive(:shout_set_metadata_utf8).twice.and_return(0)
-
-        connection.update_metadata("Track 1")
-        connection.metadata = "Track 2"
-      end
-
       it "raises ArgumentError when metadata is invalid type" do
         allow(connection).to receive(:connected?).and_return(true)
         expect {
           connection.send_metadata(12345)
         }.to raise_error(ArgumentError, /Expected Metadata, Hash, or String/)
+      end
+
+      context "over the HTTP protocol (default)" do
+        let(:updater) { instance_double(HttpMetadata, update: "Metadata update successful") }
+
+        before do
+          allow(connection).to receive(:connected?).and_return(true)
+          allow(HttpMetadata).to receive(:new).and_return(updater)
+        end
+
+        it "uses the HTTP protocol by default" do
+          expect(connection.http_protocol?).to be true
+        end
+
+        it "sends metadata through HttpMetadata instead of libshout" do
+          expect(::Shout).not_to receive(:shout_set_metadata_utf8)
+          expect(HttpMetadata).to receive(:new)
+            .with(connection.configuration, timeout: HttpMetadata::DEFAULT_TIMEOUT)
+          expect(updater).to receive(:update) do |metadata|
+            expect(metadata["song"]).to eql "Daft Punk - One More Time"
+          end
+
+          meta = connection.send_metadata("Daft Punk - One More Time")
+          expect(meta["song"]).to eql "Daft Punk - One More Time"
+        end
+
+        it "passes a custom metadata_timeout" do
+          connection.metadata_timeout = 1.5
+          expect(HttpMetadata).to receive(:new).with(connection.configuration, timeout: 1.5)
+          connection.send_metadata("Track")
+        end
+
+        it "sends metadata from a Hash" do
+          meta = connection.send_metadata(song: "Kraftwerk - The Robots")
+          expect(meta["song"]).to eql "Kraftwerk - The Robots"
+        end
+
+        it "returns a given Metadata instance" do
+          metadata = Metadata.new(song: "Air - Sexy Boy")
+          expect(updater).to receive(:update).with(metadata)
+          expect(connection.send_metadata(metadata)).to eql metadata
+        end
+
+        it "aliases update_metadata and metadata= to send_metadata" do
+          expect(updater).to receive(:update).twice
+          connection.update_metadata("Track 1")
+          connection.metadata = "Track 2"
+        end
+
+        it "propagates errors from HttpMetadata" do
+          allow(updater).to receive(:update).and_raise(LoginError, "rejected")
+          expect { connection.send_metadata("Track") }.to raise_error(LoginError, "rejected")
+        end
+      end
+
+      context "over other protocols" do
+        before do
+          connection.configuration.protocol = :icy
+          allow(connection).to receive(:connected?).and_return(true)
+        end
+
+        it "is not the HTTP protocol" do
+          expect(connection.http_protocol?).to be false
+        end
+
+        it "sends metadata via shout_set_metadata_utf8" do
+          expect(HttpMetadata).not_to receive(:new)
+          expect(::Shout).to receive(:shout_set_metadata_utf8) do |shout, meta_ptr|
+            expect(shout).to eql connection.shout
+            expect(meta_ptr).to respond_to(:to_ptr)
+            0
+          end
+
+          meta = connection.send_metadata("Daft Punk - One More Time")
+          expect(meta["song"]).to eql "Daft Punk - One More Time"
+        end
+
+        it "raises when shout_set_metadata_utf8 fails" do
+          expect(::Shout).to receive(:shout_set_metadata_utf8).and_return(SHOUTERR_METADATA)
+          expect { connection.send_metadata("Track") }.to raise_error(MetadataError)
+        end
       end
     end
 

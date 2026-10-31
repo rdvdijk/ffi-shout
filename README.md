@@ -146,6 +146,12 @@ metadata.add("song", "Artist - Song Title")
 connection.send_metadata(metadata)
 ```
 
+With the HTTP protocol (the default), metadata updates don't go through libshout's `shout_set_metadata_utf8`. With Icecast 2.5, libshout 2.4.6 never returns from that call ([icecast-libshout#2341](https://gitlab.xiph.org/xiph/icecast-libshout/-/issues/2341)). Instead, this gem sends the request to Icecast's `/admin/metadata` endpoint itself, with the source credentials included in the first request. Other protocols still use libshout.
+
+- Requests time out after 5 seconds. Change this with `connection.metadata_timeout = 2`.
+- Failures raise `Shout::LoginError` (credentials rejected), `Shout::MetadataError` (the server refused the update) or `Shout::ConnectionError` (network error or timeout).
+- For TLS, set `tls` to `:rfc2818` (HTTPS) or `:disabled`/`:auto` (plain HTTP). `:auto_no_plain` and `:rfc2817` raise `Shout::UnsupportedError` for metadata updates.
+
 ### Configuration Options
 
 The configuration object exposes all properties supported by `shout.h`:
@@ -195,6 +201,12 @@ Make sure you are using Ruby 3.4.12:
 ```bash
 chruby 3.4.12
 bundle exec rspec
+```
+
+The integration specs (`spec/integration`) need a local Icecast server on `localhost:9000` with source password `changeme`. They check their results through `/status-json.xsl`. To skip them, run:
+
+```bash
+bundle exec rspec --tag ~integration
 ```
 
 ## License
