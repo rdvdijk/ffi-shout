@@ -2,22 +2,26 @@
 
 Ruby FFI bindings for [libshout](https://icecast.org/), the streaming library for Icecast.
 
+See [CHANGELOG.md](CHANGELOG.md) for what changed.
+
 ## Installation
 
-### Prerequisites
+### Requirements
 
-Ensure you have the libshout development library installed on your system:
+- Ruby 3.2 or newer
+- libshout 2.4.6 or newer, including its development files:
+  - Ubuntu / Debian: `sudo apt-get install libshout3-dev`
+  - Arch Linux: `sudo pacman -S libshout`
+  - macOS (Homebrew): `brew install libshout`
 
-- Ubuntu / Debian: `sudo apt-get install libshout3-dev`
-- Arch Linux: `sudo pacman -S libshout`
-- macOS (Homebrew): `brew install libshout`
+Older distributions may ship an older libshout; check with `pkg-config --modversion shout`. With libshout older than 2.4.6, `require "shout"` raises a `LoadError` that names the version it found.
 
 ### Gem Installation
 
 Add to your Gemfile:
 
 ```ruby
-gem 'shout-ruby-ffi'
+gem "shout-ruby-ffi"
 ```
 
 And run:
@@ -32,10 +36,10 @@ bundle install
 
 #### 1. Automatic Lifecycle (Block Form)
 
-You can pass a block to `connect`, which automatically handles disconnecting when the block completes (even if an exception is raised):
+You can pass a block to `connect`, which automatically handles disconnecting when the block completes (even if an exception is raised). `connect` returns the block's value.
 
 ```ruby
-require 'shout'
+require "shout"
 
 connection = Shout::Connection.new do |conn|
   conn.configuration.host = "127.0.0.1"
@@ -65,7 +69,7 @@ connection.connect do |conn|
 
   # Stream audio chunks
   File.open("audio.mp3", "rb") do |file|
-    while chunk = file.read(4096)
+    while (chunk = file.read(4096))
       conn.send_data(chunk)
 
       # Wait for the server timing synchronization
@@ -76,12 +80,24 @@ end
 # Automatically disconnected once the block exits
 ```
 
+Configuration attributes can also be passed as keyword arguments, and `Connection.open` creates and connects in one step:
+
+```ruby
+Shout::Connection.open(host: "127.0.0.1", port: 8000, mount: "/stream.mp3",
+                       user: "source", password: "hackme") do |conn|
+  conn.update_metadata(song: "Daft Punk - One More Time")
+  # ...
+end
+```
+
+An unknown attribute raises `ArgumentError` (for example `unknown attribute(s): hots`). Settings without a keyword form, such as `set_content_format` or `audio_info`, go in a block as above.
+
 #### 2. Manual Lifecycle (Holding the Connection in a Field)
 
 If you need a long-running stream managed across multiple methods or worker events, call `connect` without a block. This returns the connection instance, allowing you to store it in an instance variable (field) and explicitly call `disconnect` (or `close`) later:
 
 ```ruby
-require 'shout'
+require "shout"
 
 class RadioBroadcaster
   attr_reader :connection
@@ -104,8 +120,7 @@ class RadioBroadcaster
   end
 
   def broadcast(chunk)
-    @connection.send_data(chunk)
-    @connection.sync
+    @connection.send_data(chunk).sync
   end
 
   def change_track(title)
@@ -123,11 +138,19 @@ broadcaster = RadioBroadcaster.new
 broadcaster.start
 
 broadcaster.change_track("Led Zeppelin - Immigrant Song")
-broadcaster.broadcast(audio_data)
+broadcaster.broadcast(audio_data) # audio_data: a chunk of MP3 data, e.g. from File#read
 
 # ... later in your application lifecycle:
 broadcaster.stop
 ```
+
+`send_data` (and its aliases `write` and `<<`), `sync` and `disconnect` return the connection, so calls can be chained: `connection << chunk1 << chunk2`.
+
+#### Blocking and threads
+
+libshout calls that wait on the network (`connect`, `send_data`, `sync`, `disconnect`) block the calling thread but let other Ruby threads keep running.
+
+Non-blocking mode (`nonblocking = :none`) is not supported yet: in that mode libshout reports a busy connection, which this gem raises as `Shout::BusyError` instead of retrying.
 
 ### Sending Metadata
 
@@ -141,16 +164,19 @@ connection.metadata = "Artist - Song Title"
 connection.update_metadata(song: "Artist - Song Title")
 
 # Using a Shout::Metadata object
-metadata = Shout::Metadata.new
-metadata.add("song", "Artist - Song Title")
+metadata = Shout::Metadata.new(song: "Artist - Song Title")
 connection.send_metadata(metadata)
 ```
+
+`Shout::Metadata` behaves like a small hash of strings: `metadata["song"]` reads a value, `metadata.add("artist", "Queen")` (or `metadata["artist"] = "Queen"`) adds one, it is `Enumerable` (`each` yields key and value), and two instances with the same keys and values are equal.
 
 With the HTTP protocol (the default), metadata updates don't go through libshout's `shout_set_metadata_utf8`. With Icecast 2.5, libshout 2.4.6 never returns from that call ([icecast-libshout#2341](https://gitlab.xiph.org/xiph/icecast-libshout/-/issues/2341)). Instead, this gem sends the request to Icecast's `/admin/metadata` endpoint itself, with the source credentials included in the first request. Other protocols still use libshout.
 
 - Requests time out after 5 seconds. Change this with `connection.metadata_timeout = 2`.
 - Failures raise `Shout::LoginError` (credentials rejected), `Shout::MetadataError` (the server refused the update) or `Shout::ConnectionError` (network error or timeout).
 - For TLS, set `tls` to `:rfc2818` (HTTPS) or `:disabled`/`:auto` (plain HTTP). `:auto_no_plain` and `:rfc2817` raise `Shout::UnsupportedError` for metadata updates.
+
+> **Security note:** with `tls = :auto` (libshout's default), libshout may upgrade the audio connection to TLS, but metadata updates are sent over plain HTTP, so the source password is sent unencrypted. If you rely on TLS, set `tls = :rfc2818`.
 
 ### Configuration Options
 
@@ -177,7 +203,7 @@ connection.configure do |config|
 
   # Streaming options
   config.public = false
-  config.nonblocking = :full    # :full (blocking), :none (non-blocking), :default
+  config.nonblocking = :full    # :full (blocking); :none is not supported yet, see above
   config.content_language = "en-US"
 
   # Audio info
@@ -194,9 +220,40 @@ connection.configure do |config|
 end
 ```
 
-Settings that take a symbol also read back as one: `config.protocol` returns `:http`, `config.tls` returns `:auto`, and `config.content_format.format` returns `:mp3`. Setting an unknown symbol raises `ArgumentError`.
+Settings that take a symbol also read back as one: `config.protocol` returns `:http`, `config.tls` returns `:auto`, and `config.content_format.format` returns `:mp3`. Setting an unknown symbol raises `ArgumentError`. The on/off flags also have a `?` reader: `config.public?` and `config.nonblocking?`.
 
 `config.format=`, `config.name=`, `config.url=`, `config.genre=`, `config.description=` and `config.dumpfile=` call libshout functions that libshout marks obsolete. They still work, but print a deprecation warning when Ruby's deprecation warnings are on (`ruby -W:deprecated`). Use `set_content_format` and `config.meta.*` instead.
+
+### Errors
+
+Every libshout error is raised as a subclass of `Shout::ShoutError`, so `rescue Shout::ShoutError` catches them all. The message is libshout's own error text where available.
+
+| Class | libshout error |
+|---|---|
+| `Shout::InsaneError` | `SHOUTERR_INSANE`: invalid parameters or state |
+| `Shout::ConnectionError` | `SHOUTERR_NOCONNECT`: couldn't connect (also network errors in HTTP metadata updates) |
+| `Shout::LoginError` | `SHOUTERR_NOLOGIN`: the server rejected the login |
+| `Shout::SocketIOError` | `SHOUTERR_SOCKET`: error while talking to the server |
+| `Shout::MallocError` | `SHOUTERR_MALLOC`: out of memory |
+| `Shout::MetadataError` | `SHOUTERR_METADATA`: metadata update failed |
+| `Shout::ConnectedError` | `SHOUTERR_CONNECTED`: can't change this while connected |
+| `Shout::UnconnectedError` | `SHOUTERR_UNCONNECTED`: not connected |
+| `Shout::UnsupportedError` | `SHOUTERR_UNSUPPORTED`: not supported by this server, protocol or format |
+| `Shout::BusyError` | `SHOUTERR_BUSY`: busy, try again later (non-blocking mode) |
+| `Shout::NoTLSError` | `SHOUTERR_NOTLS`: TLS requested but not available |
+| `Shout::TLSBadCertError` | `SHOUTERR_TLSBADCERT`: the server's TLS certificate failed verification |
+| `Shout::RetryError` | `SHOUTERR_RETRY`: try again |
+
+`Shout::SocketIOError` used to be called `Shout::SocketError`. The old name still works but is deprecated, because inside `module Shout` it hid Ruby's own `::SocketError`.
+
+### libshout Version
+
+`Shout.version` describes the loaded libshout library:
+
+```ruby
+Shout.version.to_s        # => "2.4.6"
+Shout.version >= "2.4.6"  # => true
+```
 
 ## Development
 
