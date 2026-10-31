@@ -30,7 +30,7 @@ module IcecastIntegration
       c.configuration.user = "source"
       c.configuration.password = "changeme"
       c.configuration.protocol = :http
-      c.configuration.format = :mp3
+      c.configuration.set_content_format(:mp3)
     end
   end
 

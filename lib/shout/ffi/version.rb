@@ -4,7 +4,21 @@ module Shout
   module FFI
     # The version of the loaded libshout library (shout_version).
     class Version
+      include Comparable
+
+      # The oldest libshout with every function these bindings attach
+      # (shout_set_metadata_utf8 was added in 2.4.6).
+      MINIMUM = "2.4.6"
+
       attr_reader :string, :major, :minor, :patch
+
+      # Raises LoadError when the loaded libshout is older than MINIMUM.
+      def self.ensure_supported!
+        version = new
+        return version if version >= Gem::Version.new(MINIMUM)
+
+        raise LoadError, "shout-ruby-ffi needs libshout #{MINIMUM} or newer, but found #{version.number}"
+      end
 
       def initialize
         major_ptr = ::FFI::MemoryPointer.new(:int)
@@ -15,6 +29,15 @@ module Shout
         @major = major_ptr.read_int
         @minor = minor_ptr.read_int
         @patch = patch_ptr.read_int
+      end
+
+      # "major.minor.patch", e.g. "2.4.6".
+      def number
+        [major, minor, patch].join(".")
+      end
+
+      def <=>(other)
+        Gem::Version.new(number) <=> Gem::Version.new(other.to_s)
       end
 
       def to_s

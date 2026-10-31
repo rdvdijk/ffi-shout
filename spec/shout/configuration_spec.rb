@@ -86,6 +86,49 @@ module Shout
       end
     end
 
+    context "nonblocking?" do
+      it "is true in non-blocking mode" do
+        allow(::Shout).to receive(:shout_get_nonblocking).and_return(:none)
+        expect(configuration.nonblocking?).to be true
+      end
+
+      it "is false in blocking mode" do
+        allow(::Shout).to receive(:shout_get_nonblocking).and_return(:full)
+        expect(configuration.nonblocking?).to be false
+      end
+    end
+
+    context "obsolete settings" do
+      around do |example|
+        deprecated = Warning[:deprecated]
+        Warning[:deprecated] = true
+        example.run
+      ensure
+        Warning[:deprecated] = deprecated
+      end
+
+      it "warns about obsolete writers and names the replacement" do
+        expect(::Shout).to receive(:shout_set_genre).with(shout, "Rock").and_return(0)
+        expect { configuration.genre = "Rock" }
+          .to output(/Configuration#genre= is obsolete in libshout; use meta.genre= instead/).to_stderr
+      end
+
+      it "warns about format= and points to set_content_format" do
+        allow(::Shout).to receive(:shout_set_format).and_return(0)
+        expect { configuration.format = :mp3 }.to output(/use set_content_format instead/).to_stderr
+      end
+
+      it "warns about dumpfile= without a replacement" do
+        allow(::Shout).to receive(:shout_set_dumpfile).and_return(0)
+        expect { configuration.dumpfile = "dump" }.to output(/dumpfile= is obsolete in libshout\n/).to_stderr
+      end
+
+      it "does not warn about the readers" do
+        allow(::Shout).to receive(:shout_get_genre).and_return("Rock")
+        expect { configuration.genre }.not_to output.to_stderr
+      end
+    end
+
     context "audio_info fields" do
       subject(:audio_info) { configuration.audio_info }
 
@@ -221,9 +264,13 @@ module Shout
       end
 
       it "sets content format using symbols" do
-        expect(::Shout).to receive(:shout_set_content_format).with(shout, SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO,
-                                                                   nil).and_return(0)
+        expect(::Shout).to receive(:shout_set_content_format).with(shout, :mp3, SHOUT_USAGE_AUDIO, nil).and_return(0)
         configuration.set_content_format(:mp3)
+      end
+
+      it "returns the ContentFormat from #set" do
+        allow(::Shout).to receive(:shout_set_content_format).and_return(0)
+        expect(content_format.set(:mp3)).to be content_format
       end
 
       it "gets content format, usage, and codecs" do
@@ -235,7 +282,7 @@ module Shout
           0
         end
 
-        expect(content_format.format).to eql SHOUT_FORMAT_OGG
+        expect(content_format.format).to be :ogg
         expect(content_format.usage).to eql SHOUT_USAGE_AUDIO
         expect(content_format.codecs).to be_nil
       end

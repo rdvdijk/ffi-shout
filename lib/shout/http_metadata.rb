@@ -18,12 +18,12 @@ module Shout
     PATH            = "/admin/metadata"
     DEFAULT_TIMEOUT = 5
 
-    PLAIN_TLS_MODES = [SHOUT_TLS_DISABLED, SHOUT_TLS_AUTO].freeze
+    PLAIN_TLS_MODES = %i[disabled auto].freeze
 
+    # Timeout::Error covers Net::OpenTimeout, ReadTimeout and WriteTimeout;
+    # SystemCallError covers the Errno::* socket errors; IOError covers EOFError.
     NETWORK_ERRORS = [
-      Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
-      Errno::ENETUNREACH, Errno::EPIPE, EOFError, IOError,
-      Net::OpenTimeout, Net::ReadTimeout, ::SocketError, OpenSSL::SSL::SSLError
+      SystemCallError, IOError, Timeout::Error, ::SocketError, OpenSSL::SSL::SSLError
     ].freeze
 
     attr_reader :configuration, :timeout
@@ -73,8 +73,9 @@ module Shout
       mode = configuration.tls
       return if PLAIN_TLS_MODES.include?(mode)
 
-      unless mode == SHOUT_TLS_RFC2818
-        raise UnsupportedError, "TLS mode #{mode} is not supported for HTTP metadata updates; use :rfc2818 or :disabled"
+      unless mode == :rfc2818
+        raise UnsupportedError,
+              "TLS mode #{mode.inspect} is not supported for HTTP metadata updates; use :rfc2818 or :disabled"
       end
 
       http.use_ssl = true

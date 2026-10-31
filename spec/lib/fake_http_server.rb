@@ -46,6 +46,8 @@ class FakeHttpServer
     end
   rescue IOError, Errno::EBADF
     nil # server socket closed by #stop
+  rescue StandardError
+    retry # e.g. a TLS handshake that isn't HTTP; keep serving
   end
 
   def handle(client)
@@ -53,7 +55,7 @@ class FakeHttpServer
     headers = {}
     while (line = client.gets) && line != "\r\n"
       name, value = line.chomp.split(": ", 2)
-      headers[name.downcase] = value
+      headers[name.to_s.downcase] = value
     end
     @requests << Request.new(request_line, headers)
     return unless @respond

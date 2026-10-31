@@ -24,12 +24,37 @@ module Shout
 
     delegate_to_shout :host, :port, :agent, :tls, :ca_directory, :ca_file,
                       :allowed_ciphers, :user, :password, :client_certificate,
-                      :mount, :content_language, :protocol
+                      :mount, :content_language, :protocol, :nonblocking
 
-    delegate_to_shout :public, :nonblocking, predicate: true
+    delegate_to_shout :public, predicate: true
 
-    # Obsolete methods supported by libshout for backwards compatibility
-    delegate_to_shout :name, :url, :genre, :description, :format, :dumpfile
+    # Obsolete libshout settings, kept for backwards compatibility. Their
+    # writers print a deprecation warning (shown with `ruby -W:deprecated`).
+    OBSOLETE_SETTINGS = {
+      name: "meta.name=",
+      url: "meta.url=",
+      genre: "meta.genre=",
+      description: "meta.description=",
+      format: "set_content_format",
+      dumpfile: nil # only useful with the deprecated xaudiocast protocol
+    }.freeze
+
+    delegate_to_shout(*OBSOLETE_SETTINGS.keys)
+
+    prepend(Module.new do
+      OBSOLETE_SETTINGS.each do |name, replacement|
+        define_method(:"#{name}=") do |value|
+          advice = replacement ? "; use #{replacement} instead" : ""
+          warn "Shout::Configuration##{name}= is obsolete in libshout#{advice}", category: :deprecated, uplevel: 1
+          super(value)
+        end
+      end
+    end)
+
+    # True when libshout is set to non-blocking I/O.
+    def nonblocking?
+      nonblocking == :none
+    end
 
     def audio_info
       @audio_info ||= AudioInfo.new(shout)
@@ -47,153 +72,62 @@ module Shout
       content_format.set(format, usage, codecs)
     end
 
+    # Base for settings that libshout stores as string key/value pairs. Each
+    # subclass names its getter and setter function and its known keys; every
+    # known key gets a reader and a writer, and any key works with [] / []=.
+    class KeyValueSettings < ConfigurationBase
+      def self.settings(getter:, setter:, **keys)
+        define_method(:[]) do |key|
+          ::Shout.public_send(getter, shout, key.to_s)
+        end
+
+        define_method(:[]=) do |key, value|
+          Error.check_error(::Shout.public_send(setter, shout, key.to_s, value&.to_s), shout)
+        end
+
+        keys.each { |name, key| define_key_accessors(name, key) }
+      end
+
+      def self.define_key_accessors(name, key)
+        define_method(name) { self[key] }
+        define_method(:"#{name}=") { |value| self[key] = value }
+      end
+      private_class_method :define_key_accessors
+    end
+
     # Audio parameters advertised to the server (shout_set_audio_info).
-    class AudioInfo < ConfigurationBase
-      def bitrate=(value)
-        set(SHOUT_AI_BITRATE, value)
-      end
-
-      def bitrate
-        get(SHOUT_AI_BITRATE)
-      end
-
-      def samplerate=(value)
-        set(SHOUT_AI_SAMPLERATE, value)
-      end
-
-      def samplerate
-        get(SHOUT_AI_SAMPLERATE)
-      end
-
-      def channels=(value)
-        set(SHOUT_AI_CHANNELS, value)
-      end
-
-      def channels
-        get(SHOUT_AI_CHANNELS)
-      end
-
-      def quality=(value)
-        set(SHOUT_AI_QUALITY, value)
-      end
-
-      def quality
-        get(SHOUT_AI_QUALITY)
-      end
-
-      def [](key)
-        get(key)
-      end
-
-      def []=(key, value)
-        set(key, value)
-      end
-
-      private
-
-      def set(key, value)
-        str_val = value&.to_s
-        ret = ::Shout.shout_set_audio_info(shout, key.to_s, str_val)
-        Error.check_error(ret, shout)
-        value
-      end
-
-      def get(key)
-        ::Shout.shout_get_audio_info(shout, key.to_s)
-      end
+    class AudioInfo < KeyValueSettings
+      settings getter: :shout_get_audio_info, setter: :shout_set_audio_info,
+               bitrate: SHOUT_AI_BITRATE,
+               samplerate: SHOUT_AI_SAMPLERATE,
+               channels: SHOUT_AI_CHANNELS,
+               quality: SHOUT_AI_QUALITY
     end
 
     # Stream description such as name, genre and URL (shout_set_meta).
-    class Meta < ConfigurationBase
-      def name=(value)
-        set(SHOUT_META_NAME, value)
-      end
-
-      def name
-        get(SHOUT_META_NAME)
-      end
-
-      def url=(value)
-        set(SHOUT_META_URL, value)
-      end
-
-      def url
-        get(SHOUT_META_URL)
-      end
-
-      def genre=(value)
-        set(SHOUT_META_GENRE, value)
-      end
-
-      def genre
-        get(SHOUT_META_GENRE)
-      end
-
-      def description=(value)
-        set(SHOUT_META_DESCRIPTION, value)
-      end
-
-      def description
-        get(SHOUT_META_DESCRIPTION)
-      end
-
-      def irc=(value)
-        set(SHOUT_META_IRC, value)
-      end
-
-      def irc
-        get(SHOUT_META_IRC)
-      end
-
-      def aim=(value)
-        set(SHOUT_META_AIM, value)
-      end
-
-      def aim
-        get(SHOUT_META_AIM)
-      end
-
-      def icq=(value)
-        set(SHOUT_META_ICQ, value)
-      end
-
-      def icq
-        get(SHOUT_META_ICQ)
-      end
-
-      def [](key)
-        get(key)
-      end
-
-      def []=(key, value)
-        set(key, value)
-      end
-
-      private
-
-      def set(key, value)
-        str_val = value&.to_s
-        ret = ::Shout.shout_set_meta(shout, key.to_s, str_val)
-        Error.check_error(ret, shout)
-        value
-      end
-
-      def get(key)
-        ::Shout.shout_get_meta(shout, key.to_s)
-      end
+    class Meta < KeyValueSettings
+      settings getter: :shout_get_meta, setter: :shout_set_meta,
+               name: SHOUT_META_NAME,
+               url: SHOUT_META_URL,
+               genre: SHOUT_META_GENRE,
+               description: SHOUT_META_DESCRIPTION,
+               irc: SHOUT_META_IRC,
+               aim: SHOUT_META_AIM,
+               icq: SHOUT_META_ICQ
     end
 
     # Content format, usage and codecs of the stream (shout_set_content_format).
     class ContentFormat < ConfigurationBase
       def set(format, usage = SHOUT_USAGE_AUDIO, codecs = nil)
-        fmt = Delegation::TypeConvertor.convert(format)
-        ret = ::Shout.shout_set_content_format(shout, fmt, usage, codecs)
-        Error.check_error(ret, shout)
-        ret
+        format = Delegation::TypeConvertor.convert(format)
+        Error.check_error(::Shout.shout_set_content_format(shout, format, usage, codecs), shout)
+        self
       end
 
+      # The format as a symbol such as :mp3 (or the raw value if unknown).
       def format
-        info[0]
+        value = info[0]
+        ::Shout.enum_type(:shout_format)[value] || value
       end
 
       def usage

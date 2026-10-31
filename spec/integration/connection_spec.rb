@@ -10,7 +10,7 @@ RSpec.describe "Connection Integration", :integration do
         c.configuration.user = "source"
         c.configuration.password = "invalid_password"
         c.configuration.protocol = :http
-        c.configuration.format = :mp3
+        c.configuration.set_content_format(:mp3)
       end
     end
 

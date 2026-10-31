@@ -83,9 +83,18 @@ module Shout
         expect(yielded).to eql connection
       end
 
-      it "calls shout_close on disconnect" do
+      it "calls shout_close on disconnect and returns the connection" do
         expect(::Shout).to receive(:shout_close).with(connection.shout).and_return(0)
-        connection.disconnect
+        expect(connection.disconnect).to be connection
+      end
+
+      it "ignores disconnect when not connected" do
+        expect(connection.disconnect).to be connection
+      end
+
+      it "returns the block's value from #connect with a block" do
+        allow(::Shout).to receive_messages(shout_open: 0, shout_close: 0)
+        expect(connection.connect { :result }).to be :result
       end
 
       it "aliases open to connect and close to disconnect" do
@@ -122,6 +131,11 @@ module Shout
         connection.send_data(data)
       end
 
+      it "returns the connection, so sends can be chained" do
+        expect(::Shout).to receive(:shout_send).twice.and_return(0)
+        expect(connection << "a" << "b").to be connection
+      end
+
       it "aliases write and << to send_data" do
         data = "audio chunk"
         expect(::Shout).to receive(:shout_send).twice.and_return(0)
@@ -155,9 +169,9 @@ module Shout
     end
 
     context "timing and pacing" do
-      it "syncs stream timing via shout_sync" do
+      it "syncs stream timing via shout_sync and returns the connection" do
         expect(::Shout).to receive(:shout_sync).with(connection.shout)
-        connection.sync
+        expect(connection.sync).to be connection
       end
 
       it "gets delay in milliseconds via shout_delay" do
@@ -195,7 +209,7 @@ module Shout
         end
 
         it "uses the HTTP protocol by default" do
-          expect(connection.http_protocol?).to be true
+          expect(connection.configuration.protocol).to be :http
         end
 
         it "sends metadata through HttpMetadata instead of libshout" do
@@ -245,10 +259,6 @@ module Shout
           allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
         end
 
-        it "is not the HTTP protocol" do
-          expect(connection.http_protocol?).to be false
-        end
-
         it "sends metadata via shout_set_metadata_utf8" do
           expect(HttpMetadata).not_to receive(:new)
           expect(::Shout).to receive(:shout_set_metadata_utf8) do |shout, meta_ptr|
@@ -295,6 +305,11 @@ module Shout
         yielded = nil
         described_class.open { |c| yielded = c }
         expect(yielded).to eql conn
+      end
+
+      it "returns the block's value from Connection.open" do
+        allow(::Shout).to receive_messages(shout_open: 0, shout_close: 0)
+        expect(described_class.open(host: "10.0.0.3") { |conn| conn.configuration.host }).to eql "10.0.0.3"
       end
 
       it "aliases Shout::Client to Shout::Connection" do

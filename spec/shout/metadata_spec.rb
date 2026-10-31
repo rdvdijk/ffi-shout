@@ -30,8 +30,38 @@ module Shout
       expect(metadata[:song]).to eql "Daft Punk - Around the World"
     end
 
-    it "returns to_ptr matching the underlying struct" do
-      expect(metadata.to_ptr).to eql metadata.metadata_struct.to_ptr
+    it "returns to_ptr matching the libshout handle" do
+      expect(metadata.to_ptr).to eql metadata.handle.to_ptr
+    end
+
+    it "keeps #metadata_struct as an alias of #handle" do
+      expect(metadata.metadata_struct).to be metadata.handle
+    end
+
+    it "yields each key and value and is Enumerable" do
+      meta = described_class.new(song: "Song", genre: "Rock")
+      expect { |block| meta.each(&block) }.to yield_successive_args(%w[song Song], %w[genre Rock])
+      expect(meta.map { |key, _| key }).to eq %w[song genre]
+      expect(meta.each.size).to be 2
+    end
+
+    it "returns self from #each with a block" do
+      expect(metadata.each { nil }).to be metadata
+    end
+
+    it "compares by keys and values" do
+      expect(described_class.new(song: "A")).to eq described_class.new("song" => "A")
+      expect(described_class.new(song: "A")).not_to eq described_class.new(song: "B")
+      expect(described_class.new(song: "A")).not_to eq({ "song" => "A" })
+    end
+
+    it "can be used as a Hash key" do
+      lookup = { described_class.new(song: "A") => :found }
+      expect(lookup[described_class.new(song: "A")]).to be :found
+    end
+
+    it "shows its keys and values in #inspect" do
+      expect(described_class.new(song: "A").inspect).to eql '#<Shout::Metadata {"song" => "A"}>'
     end
 
     it "encodes non-string values to UTF-8 strings" do

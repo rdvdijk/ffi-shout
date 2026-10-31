@@ -44,7 +44,7 @@ connection = Shout::Connection.new do |conn|
   conn.configuration.user = "source"
   conn.configuration.password = "hackme"
   conn.configuration.protocol = :http
-  conn.configuration.format = :mp3
+  conn.configuration.set_content_format(:mp3)
 
   # Audio information
   conn.configuration.audio_info.bitrate = 128
@@ -94,7 +94,7 @@ class RadioBroadcaster
       conn.configuration.user = "source"
       conn.configuration.password = "hackme"
       conn.configuration.protocol = :http
-      conn.configuration.format = :mp3
+      conn.configuration.set_content_format(:mp3)
     end
   end
 
@@ -168,7 +168,7 @@ connection.configure do |config|
 
   # Protocol & Format
   config.protocol = :http       # :http, :xaudiocast, :icy, :roaraudio
-  config.format = :mp3          # :mp3, :ogg, :webm, :matroska, :text
+  config.set_content_format(:mp3) # :mp3, :ogg, :webm, :matroska, :text
 
   # TLS options
   config.tls = :auto            # :disabled, :auto, :auto_no_plain, :rfc2818, :rfc2817
@@ -177,7 +177,7 @@ connection.configure do |config|
 
   # Streaming options
   config.public = false
-  config.nonblocking = false    # :full (0), :none (1), :default (255)
+  config.nonblocking = :full    # :full (blocking), :none (non-blocking), :default
   config.content_language = "en-US"
 
   # Audio info
@@ -193,6 +193,10 @@ connection.configure do |config|
   config.meta.description = "24/7 Electronic Music"
 end
 ```
+
+Settings that take a symbol also read back as one: `config.protocol` returns `:http`, `config.tls` returns `:auto`, and `config.content_format.format` returns `:mp3`. Setting an unknown symbol raises `ArgumentError`.
+
+`config.format=`, `config.name=`, `config.url=`, `config.genre=`, `config.description=` and `config.dumpfile=` call libshout functions that libshout marks obsolete. They still work, but print a deprecation warning when Ruby's deprecation warnings are on (`ruby -W:deprecated`). Use `set_content_format` and `config.meta.*` instead.
 
 ## Development
 

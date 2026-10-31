@@ -4,7 +4,6 @@
 module Shout
   class ShoutError < StandardError; end
 
-  class ConfigurationError < ShoutError; end
   class InsaneError < ShoutError; end
   class ConnectionError < ShoutError; end
   class LoginError < ShoutError; end
@@ -28,19 +27,19 @@ module Shout
   # Maps libshout's SHOUTERR_* return codes to exception classes.
   module Error
     ERROR_CLASSES = {
-      -1 => InsaneError,
-      -2 => ConnectionError,
-      -3 => LoginError,
-      -4 => SocketIOError,
-      -5 => MallocError,
-      -6 => MetadataError,
-      -7 => ConnectedError,
-      -8 => UnconnectedError,
-      -9 => UnsupportedError,
-      -10 => BusyError,
-      -11 => NoTLSError,
-      -12 => TLSBadCertError,
-      -13 => RetryError
+      SHOUTERR_INSANE => InsaneError,
+      SHOUTERR_NOCONNECT => ConnectionError,
+      SHOUTERR_NOLOGIN => LoginError,
+      SHOUTERR_SOCKET => SocketIOError,
+      SHOUTERR_MALLOC => MallocError,
+      SHOUTERR_METADATA => MetadataError,
+      SHOUTERR_CONNECTED => ConnectedError,
+      SHOUTERR_UNCONNECTED => UnconnectedError,
+      SHOUTERR_UNSUPPORTED => UnsupportedError,
+      SHOUTERR_BUSY => BusyError,
+      SHOUTERR_NOTLS => NoTLSError,
+      SHOUTERR_TLSBADCERT => TLSBadCertError,
+      SHOUTERR_RETRY => RetryError
     }.freeze
 
     # Raises the Shout::ShoutError subclass for a negative libshout return

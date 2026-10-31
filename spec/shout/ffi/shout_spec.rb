@@ -39,8 +39,19 @@ module Shout
         end
 
         it "has tls mode" do
-          expect(::Shout).to have_flag(:tls).with_value(::Shout::SHOUT_TLS_AUTO).for(shout_pointer)
-          expect(::Shout).to be_able_to_set(:tls).to(::Shout::SHOUT_TLS_DISABLED).for(shout_pointer)
+          expect(::Shout).to have_flag(:tls).with_value(:auto).for(shout_pointer)
+          expect(::Shout).to be_able_to_set(:tls).to(:disabled).for(shout_pointer)
+        end
+
+        it "accepts the integer constants for enum parameters" do
+          expect(::Shout.shout_set_tls(shout_pointer, ::Shout::SHOUT_TLS_RFC2818)).to be 0
+          expect(::Shout.shout_get_tls(shout_pointer)).to be :rfc2818
+        end
+
+        it "rejects unknown symbols for enum parameters" do
+          expect do
+            ::Shout.shout_set_tls(shout_pointer, :sometimes)
+          end.to raise_error(ArgumentError, /invalid enum value/)
         end
 
         it "has ca_directory" do
@@ -95,13 +106,13 @@ module Shout
         end
 
         it "has protocol" do
-          expect(::Shout).to have_flag(:protocol).with_value(::Shout::SHOUT_PROTOCOL_HTTP).for(shout_pointer)
-          expect(::Shout).to be_able_to_set(:protocol).to(::Shout::SHOUT_PROTOCOL_ICY).for(shout_pointer)
+          expect(::Shout).to have_flag(:protocol).with_value(:http).for(shout_pointer)
+          expect(::Shout).to be_able_to_set(:protocol).to(:icy).for(shout_pointer)
         end
 
         it "has nonblocking mode" do
-          expect(::Shout).to have_flag(:nonblocking).with_value(0).for(shout_pointer)
-          expect(::Shout).to be_able_to_set(:nonblocking).to(1).for(shout_pointer)
+          expect(::Shout).to have_flag(:nonblocking).with_value(:full).for(shout_pointer)
+          expect(::Shout).to be_able_to_set(:nonblocking).to(:none).for(shout_pointer)
         end
 
         it "sets and gets audio info" do
@@ -170,8 +181,8 @@ module Shout
         end
 
         it "sets and gets format" do
-          expect(::Shout).to have_flag(:format).with_value(::Shout::SHOUT_FORMAT_OGG).for(shout_pointer)
-          expect(::Shout).to be_able_to_set(:format).to(::Shout::SHOUT_FORMAT_MP3).for(shout_pointer)
+          expect(::Shout).to have_flag(:format).with_value(:ogg).for(shout_pointer)
+          expect(::Shout).to be_able_to_set(:format).to(:mp3).for(shout_pointer)
         end
 
         it "sets and gets dumpfile" do

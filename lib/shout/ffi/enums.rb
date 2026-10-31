@@ -76,8 +76,9 @@ module Shout
   module FFI
     # FFI enum types for libshout's integer constants.
     module Enums
-      def self.included(base)
-        base.class_eval do
+      # Defines the libshout enum types on +base+, an FFI::Library module.
+      def self.define(base)
+        base.module_eval do
           # FFI Enums
           enum :shout_error, [
             :success,      SHOUTERR_SUCCESS,

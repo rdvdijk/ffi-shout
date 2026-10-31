@@ -3,7 +3,6 @@
 module Shout
   RSpec.describe Error do
     it "defines error classes descending from ShoutError" do
-      expect(ConfigurationError.ancestors).to include(ShoutError)
       expect(InsaneError.ancestors).to include(ShoutError)
       expect(ConnectionError.ancestors).to include(ShoutError)
       expect(LoginError.ancestors).to include(ShoutError)

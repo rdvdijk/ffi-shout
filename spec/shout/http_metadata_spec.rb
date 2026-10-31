@@ -89,6 +89,11 @@ module Shout
     end
 
     context "on network errors" do
+      it "raises ConnectionError when writing the request times out" do
+        allow_any_instance_of(Net::HTTP).to receive(:request).and_raise(Net::WriteTimeout) # rubocop:disable RSpec/AnyInstance
+        expect { updater.update(metadata) }.to raise_error(ConnectionError, /WriteTimeout/)
+      end
+
       it "raises ConnectionError when the server is unreachable" do
         configuration.port = FakeHttpServer.closed_port
         expect { updater.update(metadata) }.to raise_error(ConnectionError, /ECONNREFUSED/)

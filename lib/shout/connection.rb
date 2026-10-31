@@ -3,6 +3,9 @@
 module Shout
   # A source connection to an Icecast server: configure it, connect, send
   # audio data and update the stream's metadata.
+  #
+  # Commands (disconnect, send_data, sync, configure) return the connection,
+  # so they can be chained: `connection << chunk1 << chunk2`.
   class Connection
     attr_reader :shout
 
@@ -13,14 +16,10 @@ module Shout
       @metadata_timeout || HttpMetadata::DEFAULT_TIMEOUT
     end
 
+    # Creates a connection and connects. With a block, yields the connection,
+    # disconnects afterwards and returns the block's value.
     def self.open(**, &)
-      connection = new(**)
-      if block_given?
-        connection.connect(&)
-      else
-        connection.connect
-        connection
-      end
+      new(**).connect(&)
     end
 
     # Creates a connection, optionally setting configuration attributes, e.g.
@@ -42,26 +41,26 @@ module Shout
       @configuration ||= Configuration.new(shout)
     end
 
+    # Connects to the server. Without a block, returns the connection. With a
+    # block, yields the connection, disconnects afterwards (also when the
+    # block raises) and returns the block's value.
     def connect
-      ret = ::Shout.shout_open(shout)
-      Error.check_error(ret, shout)
+      Error.check_error(::Shout.shout_open(shout), shout)
+      return self unless block_given?
 
-      if block_given?
-        begin
-          yield self
-        ensure
-          disconnect
-        end
-      else
-        self
+      begin
+        yield self
+      ensure
+        disconnect
       end
     end
     alias open connect
 
+    # Disconnects; does nothing when not connected.
     def disconnect
       ret = ::Shout.shout_close(shout)
       Error.check_error(ret, shout) unless ret == SHOUTERR_UNCONNECTED
-      ret
+      self
     end
     alias close disconnect
 
@@ -69,46 +68,39 @@ module Shout
       ::Shout.shout_get_connected(shout) == SHOUTERR_CONNECTED
     end
 
+    # Sends audio data, which libshout parses for timing information.
     def send_data(data)
-      data_str = data.to_s
-      len = data_str.bytesize
-
-      ptr = ::FFI::MemoryPointer.new(:char, len)
-      ptr.put_bytes(0, data_str)
-      ret = ::Shout.shout_send(shout, ptr, len)
-      Error.check_error(ret, shout)
-      ret
+      with_buffer(data) { |ptr, len| Error.check_error(::Shout.shout_send(shout, ptr, len), shout) }
+      self
     end
     alias write send_data
     alias << send_data
 
+    # Sends data without parsing it. Returns the number of bytes written.
     def send_raw(data)
-      data_str = data.to_s
-      len = data_str.bytesize
-
-      ptr = ::FFI::MemoryPointer.new(:char, len)
-      ptr.put_bytes(0, data_str)
-      ret = ::Shout.shout_send_raw(shout, ptr, len)
-      Error.check_error(ret, shout)
-      ret
+      with_buffer(data) do |ptr, len|
+        ::Shout.shout_send_raw(shout, ptr, len).tap { |ret| Error.check_error(ret, shout) }
+      end
     end
 
+    # Number of bytes waiting in the send queue (only useful in nonblocking mode).
     def queuelen
-      ret = ::Shout.shout_queuelen(shout)
-      Error.check_error(ret, shout)
-      ret
+      ::Shout.shout_queuelen(shout).tap { |ret| Error.check_error(ret, shout) }
     end
 
+    # Sleeps until it is time to send more data.
     def sync
       ::Shout.shout_sync(shout)
+      self
     end
 
+    # Milliseconds to wait before sending more data.
     def delay
-      ret = ::Shout.shout_delay(shout)
-      Error.check_error(ret, shout)
-      ret
+      ::Shout.shout_delay(shout).tap { |ret| Error.check_error(ret, shout) }
     end
 
+    # Updates the stream's metadata. Accepts a Metadata, a Hash or a String
+    # (used as the "song" value). Returns the Metadata that was sent.
     def send_metadata(metadata_or_hash)
       raise UnconnectedError, "Cannot send metadata to an unconnected stream" unless connected?
 
@@ -117,8 +109,7 @@ module Shout
         # libshout's own HTTP metadata update can loop forever; see HttpMetadata.
         HttpMetadata.new(configuration, timeout: metadata_timeout).update(metadata)
       else
-        ret = ::Shout.shout_set_metadata_utf8(shout, metadata.metadata_struct)
-        Error.check_error(ret, shout)
+        Error.check_error(::Shout.shout_set_metadata_utf8(shout, metadata.handle), shout)
       end
       metadata
     end
@@ -129,15 +120,24 @@ module Shout
       ::Shout.shout_get_error(shout)
     end
 
-    def http_protocol?
-      configuration.protocol == SHOUT_PROTOCOL_HTTP
-    end
-
     def errno
       ::Shout.shout_get_errno(shout)
     end
 
     private
+
+    def http_protocol?
+      configuration.protocol == :http
+    end
+
+    # Copies +data+ into native memory for the duration of the block. libshout
+    # calls release the GVL, so they must not read a Ruby string's memory.
+    def with_buffer(data)
+      bytes = data.to_s
+      ptr = ::FFI::MemoryPointer.new(:char, bytes.bytesize)
+      ptr.put_bytes(0, bytes)
+      yield ptr, bytes.bytesize
+    end
 
     def assign_attributes(attributes)
       unknown = attributes.keys.reject { |key| configuration.respond_to?(:"#{key}=") }

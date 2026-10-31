@@ -44,49 +44,19 @@ module Shout
       end
     end
 
-    # Converts Ruby values (booleans, symbols such as :mp3 or :http) to the
-    # integers libshout expects, and libshout return values back to booleans.
+    # Converts Ruby values to what libshout's setters expect. Booleans become
+    # 1 / 0; symbols for formats, protocols, TLS and blocking modes are
+    # converted by the FFI enums in Shout::FFI::Enums, which also make the
+    # matching readers return symbols such as :mp3.
     class TypeConvertor
-      PROTOCOLS = {
-        http: ::Shout::SHOUT_PROTOCOL_HTTP,
-        xaudiocast: ::Shout::SHOUT_PROTOCOL_XAUDIOCAST,
-        icy: ::Shout::SHOUT_PROTOCOL_ICY,
-        roaraudio: ::Shout::SHOUT_PROTOCOL_ROARAUDIO
-      }.freeze
-
-      FORMATS = {
-        ogg: ::Shout::SHOUT_FORMAT_OGG,
-        mp3: ::Shout::SHOUT_FORMAT_MP3,
-        webm: ::Shout::SHOUT_FORMAT_WEBM,
-        webmaudio: ::Shout::SHOUT_FORMAT_WEBMAUDIO,
-        matroska: ::Shout::SHOUT_FORMAT_MATROSKA,
-        text: ::Shout::SHOUT_FORMAT_TEXT,
-        vorbis: ::Shout::SHOUT_FORMAT_VORBIS
-      }.freeze
-
-      TLS_MODES = {
-        disabled: ::Shout::SHOUT_TLS_DISABLED,
-        auto: ::Shout::SHOUT_TLS_AUTO,
-        auto_no_plain: ::Shout::SHOUT_TLS_AUTO_NO_PLAIN,
-        rfc2818: ::Shout::SHOUT_TLS_RFC2818,
-        rfc2817: ::Shout::SHOUT_TLS_RFC2817
-      }.freeze
-
-      BLOCKING_MODES = {
-        full: ::Shout::SHOUT_BLOCKING_FULL,
-        none: ::Shout::SHOUT_BLOCKING_NONE,
-        default: ::Shout::SHOUT_BLOCKING_DEFAULT
-      }.freeze
-
-      # All symbol names above, mapped to their libshout constant.
-      SYMBOLS = PROTOCOLS.merge(FORMATS, TLS_MODES, BLOCKING_MODES).freeze
+      # Symbols that libshout treats as another name for the same value.
+      ALIASES = { vorbis: :ogg }.freeze
 
       def self.convert(value)
         case value
         when true then 1
         when false then 0
-        when Symbol then SYMBOLS.fetch(value, value)
-        else value
+        else ALIASES.fetch(value, value)
         end
       end
 
