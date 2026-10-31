@@ -1,27 +1,26 @@
-# -*- encoding: utf-8 -*-
-lib = File.expand_path('../lib', __FILE__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'shout/version'
+# frozen_string_literal: true
 
-Gem::Specification.new do |gem|
-  gem.name          = "shout-ruby-ffi"
-  gem.version       = Shout::VERSION
-  gem.authors       = ["Roel van Dijk"]
-  gem.email         = ["roel@rustradio.org"]
-  gem.description   = %q{Ruby FFI wrapper around libshout for streaming to Icecast servers.}
-  gem.summary       = %q{Easily connect and stream audio/metadata to Icecast using libshout.}
-  gem.homepage      = "http://github.com/rdvdijk/shout-ruby-ffi"
+require_relative "lib/shout/version"
 
-  gem.files         = `git ls-files`.split($/)
-  gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
-  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
-  gem.require_paths = ["lib"]
+Gem::Specification.new do |spec|
+  spec.name          = "shout-ruby-ffi"
+  spec.version       = Shout::VERSION
+  spec.authors       = ["Roel van Dijk"]
+  spec.email         = ["roel@rustradio.org"]
 
-  gem.add_dependency "ffi"
+  spec.summary       = "Easily connect and stream audio/metadata to Icecast using libshout."
+  spec.description   = "Ruby FFI wrapper around libshout for streaming to Icecast servers."
+  spec.homepage      = "https://github.com/rdvdijk/shout-ruby-ffi"
+  spec.license       = "MIT"
+  spec.required_ruby_version = ">= 3.2"
 
-  gem.add_development_dependency "rake"
-  gem.add_development_dependency "rspec"
-  gem.add_development_dependency "pry"
-  gem.add_development_dependency "simplecov", "~> 0.22"
-  gem.add_development_dependency "simplecov-lcov", "~> 0.8"
+  spec.metadata["homepage_uri"]          = spec.homepage
+  spec.metadata["source_code_uri"]       = spec.homepage
+  spec.metadata["bug_tracker_uri"]       = "#{spec.homepage}/issues"
+  spec.metadata["rubygems_mfa_required"] = "true"
+
+  spec.files         = Dir["lib/**/*.rb", "LICENSE.txt", "README.md"]
+  spec.require_paths = ["lib"]
+
+  spec.add_dependency "ffi", "~> 1.15"
 end

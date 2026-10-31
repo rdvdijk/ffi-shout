@@ -1,9 +1,10 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 module Shout
-  describe HttpMetadata do
-
-    let(:success_body) { '<?xml version="1.0"?><iceresponse><message>Metadata update successful</message><return>1</return></iceresponse>' }
+  RSpec.describe HttpMetadata do
+    let(:success_body) do
+      '<?xml version="1.0"?><iceresponse><message>Metadata update successful</message><return>1</return></iceresponse>'
+    end
     let(:server) { FakeHttpServer.new(body: success_body) }
     let(:port) { server.port }
     let(:connection) do
@@ -13,7 +14,7 @@ module Shout
     let(:configuration) { connection.configuration }
     let(:metadata) { Metadata.new(song: "Daft Punk - One More Time") }
 
-    subject(:updater) { HttpMetadata.new(configuration, timeout: 1) }
+    subject(:updater) { described_class.new(configuration, timeout: 1) }
 
     after { server.stop }
 
@@ -71,8 +72,8 @@ module Shout
       end
 
       it "raises MetadataError with the server message on other errors" do
-        server = FakeHttpServer.new(status: "400 Bad Request",
-                                    body: "<iceresponse><message>Source does not exist</message><return>0</return></iceresponse>")
+        body = "<iceresponse><message>Source does not exist</message><return>0</return></iceresponse>"
+        server = FakeHttpServer.new(status: "400 Bad Request", body: body)
         configuration.port = server.port
         expect { updater.update(metadata) }
           .to raise_error(MetadataError, "Metadata update failed (HTTP 400: Source does not exist)")
@@ -96,14 +97,14 @@ module Shout
       it "raises ConnectionError when the server does not answer in time" do
         server = FakeHttpServer.new(respond: false)
         configuration.port = server.port
-        updater = HttpMetadata.new(configuration, timeout: 0.2)
+        updater = described_class.new(configuration, timeout: 0.2)
         expect { updater.update(metadata) }.to raise_error(ConnectionError, /ReadTimeout/)
         server.stop
       end
     end
 
     context "TLS modes" do
-      [:disabled, :auto].each do |mode|
+      %i[disabled auto].each do |mode|
         it "uses plain HTTP for tls = #{mode.inspect}" do
           configuration.tls = mode
           expect(updater.update(metadata)).to eql "Metadata update successful"
@@ -130,8 +131,7 @@ module Shout
 
       it "does not set CA locations for tls = :rfc2818 when none are configured" do
         configuration.tls = :rfc2818
-        allow(configuration).to receive(:ca_file).and_return(nil)
-        allow(configuration).to receive(:ca_directory).and_return(nil)
+        allow(configuration).to receive_messages(ca_file: nil, ca_directory: nil)
 
         http = nil
         allow(Net::HTTP).to receive(:new).and_wrap_original do |original, *args|
@@ -143,7 +143,7 @@ module Shout
         expect(http.ca_path).to be_nil
       end
 
-      [:auto_no_plain, :rfc2817].each do |mode|
+      %i[auto_no_plain rfc2817].each do |mode|
         it "raises UnsupportedError for tls = #{mode.inspect}" do
           configuration.tls = mode
           expect { updater.update(metadata) }.to raise_error(UnsupportedError, /not supported/)
@@ -153,8 +153,7 @@ module Shout
     end
 
     it "defaults to a 5 second timeout" do
-      expect(HttpMetadata.new(configuration).timeout).to eql 5
+      expect(described_class.new(configuration).timeout).to be 5
     end
-
   end
 end

@@ -1,7 +1,6 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe "Connection Integration", :integration => true do
-
+RSpec.describe "Connection Integration", :integration do
   context "connecting to Icecast 2 server" do
     let(:connection) do
       Shout::Connection.new do |c|
@@ -16,9 +15,9 @@ describe "Connection Integration", :integration => true do
     end
 
     it "attempts connection to Icecast 2 server and reports authentication failure" do
-      expect {
+      expect do
         connection.connect
-      }.to raise_error(Shout::LoginError, /Login failed/)
+      end.to raise_error(Shout::LoginError, /Login failed/)
     end
 
     it "reports unconnected status after failed connection attempt" do
@@ -31,16 +30,16 @@ describe "Connection Integration", :integration => true do
     let(:connection) do
       Shout::Connection.new do |c|
         c.configuration.host = "127.0.0.1"
-        c.configuration.port = 59999
+        c.configuration.port = 59_999
         c.configuration.mount = "/stream.mp3"
         c.configuration.password = "secret"
       end
     end
 
     it "raises ConnectionError when host/port is unreachable" do
-      expect {
+      expect do
         connection.connect
-      }.to raise_error(Shout::ConnectionError)
+      end.to raise_error(Shout::ConnectionError)
     end
   end
 
@@ -48,16 +47,15 @@ describe "Connection Integration", :integration => true do
     let(:connection) { Shout::Connection.new }
 
     it "refuses to send metadata when not connected" do
-      expect {
+      expect do
         connection.send_metadata("Artist - Title")
-      }.to raise_error(Shout::UnconnectedError)
+      end.to raise_error(Shout::UnconnectedError)
     end
 
     it "refuses to send metadata via metadata= when not connected" do
-      expect {
+      expect do
         connection.metadata = { song: "Artist - Title" }
-      }.to raise_error(Shout::UnconnectedError)
+      end.to raise_error(Shout::UnconnectedError)
     end
   end
-
 end

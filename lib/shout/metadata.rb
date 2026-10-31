@@ -1,6 +1,8 @@
-module Shout
-  class Metadata
+# frozen_string_literal: true
 
+module Shout
+  # Song metadata to send to the server, such as "song" => "Artist - Title".
+  class Metadata
     attr_reader :metadata_struct
 
     def initialize(attributes = {})
@@ -13,16 +15,16 @@ module Shout
     end
 
     def add(name, value)
-      key_str = name.to_s.encode('UTF-8')
-      val_str = value.to_s.encode('UTF-8')
+      key_str = name.to_s.encode("UTF-8")
+      val_str = value.to_s.encode("UTF-8")
 
       ret = ::Shout.shout_metadata_add(@metadata_struct, key_str, val_str)
-      Error.check_error(ret) if ret < 0
+      Error.check_error(ret)
 
       @attributes[key_str] = val_str
       self
     end
-    alias_method :[]=, :add
+    alias []= add
 
     def [](key)
       @attributes[key.to_s]
@@ -35,6 +37,5 @@ module Shout
     def to_h
       @attributes.dup
     end
-
   end
 end

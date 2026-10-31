@@ -1,6 +1,9 @@
-module Shout
-  module Delegation
+# frozen_string_literal: true
 
+module Shout
+  # Class macros that define attribute readers and writers delegating to
+  # libshout's shout_get_<name> / shout_set_<name> functions.
+  module Delegation
     def delegate_to_shout(*delegations)
       delegations.each do |flag|
         define_setter_delegator(flag, flag)
@@ -20,22 +23,24 @@ module Shout
     def define_setter_delegator(from, to, preset = "shout")
       define_method(:"#{from}=") do |value|
         converted_value = TypeConvertor.convert(value)
-        ret = ::Shout.send(:"#{preset}_set_#{to}", shout, converted_value)
-        Error.check_error(ret, shout) if ret.is_a?(Integer) && ret < 0
+        ret = ::Shout.public_send(:"#{preset}_set_#{to}", shout, converted_value)
+        Error.check_error(ret, shout)
         value
       end
     end
 
     def define_getter_delegator(from, to, preset = "shout")
       define_method(:"#{from}") do
-        ::Shout.send(:"#{preset}_get_#{to}", shout)
+        ::Shout.public_send(:"#{preset}_get_#{to}", shout)
       end
       define_method(:"#{from}?") do
-        return_value = send(:"#{from}")
+        return_value = public_send(:"#{from}")
         TypeConvertor.convert_return(return_value)
       end
     end
 
+    # Converts Ruby values (booleans, symbols such as :mp3 or :http) to the
+    # integers libshout expects, and libshout return values back to booleans.
     class TypeConvertor
       PROTOCOLS = {
         http: ::Shout::SHOUT_PROTOCOL_HTTP,
@@ -68,26 +73,15 @@ module Shout
         default: ::Shout::SHOUT_BLOCKING_DEFAULT
       }.freeze
 
+      # All symbol names above, mapped to their libshout constant.
+      SYMBOLS = PROTOCOLS.merge(FORMATS, TLS_MODES, BLOCKING_MODES).freeze
+
       def self.convert(value)
         case value
-        when true
-          1
-        when false
-          0
-        when Symbol
-          if PROTOCOLS.key?(value)
-            PROTOCOLS[value]
-          elsif FORMATS.key?(value)
-            FORMATS[value]
-          elsif TLS_MODES.key?(value)
-            TLS_MODES[value]
-          elsif BLOCKING_MODES.key?(value)
-            BLOCKING_MODES[value]
-          else
-            value
-          end
-        else
-          value
+        when true then 1
+        when false then 0
+        when Symbol then SYMBOLS.fetch(value, value)
+        else value
         end
       end
 
@@ -100,6 +94,5 @@ module Shout
         end
       end
     end
-
   end
 end

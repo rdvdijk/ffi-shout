@@ -1,10 +1,10 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 module Shout
-  describe Configuration do
+  RSpec.describe Configuration do
+    let(:shout) { instance_double(::FFI::Pointer) }
 
-    let(:shout) { double("shout") }
-    subject(:configuration) { Configuration.new(shout) }
+    subject(:configuration) { described_class.new(shout) }
 
     context "initialization" do
       it "initializes with shout pointer" do
@@ -47,36 +47,36 @@ module Shout
 
     context "set/get delegation" do
       context "alias fields" do
-        it { should delegate(:username).to(:user) }
-        it { should delegate(:pass).to(:password) }
-        it { should delegate(:mountpoint).to(:mount) }
-        it { should delegate(:user_agent).to(:agent) }
+        it { is_expected.to delegate(:username).to(:user) }
+        it { is_expected.to delegate(:pass).to(:password) }
+        it { is_expected.to delegate(:mountpoint).to(:mount) }
+        it { is_expected.to delegate(:user_agent).to(:agent) }
       end
 
       context "basic fields" do
-        it { should delegate(:host) }
-        it { should delegate(:port) }
-        it { should delegate(:agent) }
-        it { should delegate(:tls) }
-        it { should delegate(:ca_directory) }
-        it { should delegate(:ca_file) }
-        it { should delegate(:allowed_ciphers) }
-        it { should delegate(:user) }
-        it { should delegate(:password) }
-        it { should delegate(:client_certificate) }
-        it { should delegate(:mount) }
-        it { should delegate(:public) }
-        it { should delegate(:content_language) }
-        it { should delegate(:protocol) }
-        it { should delegate(:nonblocking) }
+        it { is_expected.to delegate(:host) }
+        it { is_expected.to delegate(:port) }
+        it { is_expected.to delegate(:agent) }
+        it { is_expected.to delegate(:tls) }
+        it { is_expected.to delegate(:ca_directory) }
+        it { is_expected.to delegate(:ca_file) }
+        it { is_expected.to delegate(:allowed_ciphers) }
+        it { is_expected.to delegate(:user) }
+        it { is_expected.to delegate(:password) }
+        it { is_expected.to delegate(:client_certificate) }
+        it { is_expected.to delegate(:mount) }
+        it { is_expected.to delegate(:public) }
+        it { is_expected.to delegate(:content_language) }
+        it { is_expected.to delegate(:protocol) }
+        it { is_expected.to delegate(:nonblocking) }
 
         # Obsolete fields
-        it { should delegate(:name) }
-        it { should delegate(:url) }
-        it { should delegate(:genre) }
-        it { should delegate(:description) }
-        it { should delegate(:format) }
-        it { should delegate(:dumpfile) }
+        it { is_expected.to delegate(:name) }
+        it { is_expected.to delegate(:url) }
+        it { is_expected.to delegate(:genre) }
+        it { is_expected.to delegate(:description) }
+        it { is_expected.to delegate(:format) }
+        it { is_expected.to delegate(:dumpfile) }
       end
     end
 
@@ -95,7 +95,7 @@ module Shout
 
       it "delegates #samplerate= to shout_set_audio_info" do
         expect(::Shout).to receive(:shout_set_audio_info).with(shout, "samplerate", "44100").and_return(0)
-        audio_info.samplerate = 44100
+        audio_info.samplerate = 44_100
       end
 
       it "delegates #samplerate to shout_get_audio_info" do
@@ -209,17 +209,20 @@ module Shout
       subject(:content_format) { configuration.content_format }
 
       it "sets content format using integers" do
-        expect(::Shout).to receive(:shout_set_content_format).with(shout, SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO, nil).and_return(0)
+        expect(::Shout).to receive(:shout_set_content_format).with(shout, SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO,
+                                                                   nil).and_return(0)
         content_format.set(SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO, nil)
       end
 
       it "sets content format using symbols" do
-        expect(::Shout).to receive(:shout_set_content_format).with(shout, SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO, nil).and_return(0)
+        expect(::Shout).to receive(:shout_set_content_format).with(shout, SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO,
+                                                                   nil).and_return(0)
         configuration.set_content_format(:mp3)
       end
 
       it "gets content format, usage, and codecs" do
-        expect(::Shout).to receive(:shout_get_content_format).exactly(3).times do |_shout, fmt_ptr, usage_ptr, codecs_ptr|
+        expect(::Shout).to receive(:shout_get_content_format)
+          .exactly(3).times do |_shout, fmt_ptr, usage_ptr, codecs_ptr|
           fmt_ptr.write_uint(SHOUT_FORMAT_OGG)
           usage_ptr.write_uint(SHOUT_USAGE_AUDIO)
           codecs_ptr.write_pointer(::FFI::Pointer::NULL)
@@ -243,6 +246,5 @@ module Shout
         expect(content_format.codecs).to eql "vorbis"
       end
     end
-
   end
 end

@@ -1,7 +1,8 @@
-module Shout
+# frozen_string_literal: true
 
+module Shout
   # Constants
-  SHOUTERR_SUCCESS            =  0
+  SHOUTERR_SUCCESS = 0
   SHOUTERR_INSANE             = -1
   SHOUTERR_NOCONNECT          = -2
   SHOUTERR_NOLOGIN            = -3
@@ -73,11 +74,10 @@ module Shout
   SHOUT_TLS                   = 1
 
   module FFI
+    # FFI enum types for libshout's integer constants.
     module Enums
-
       def self.included(base)
         base.class_eval do
-
           # FFI Enums
           enum :shout_error, [
             :success,      SHOUTERR_SUCCESS,
@@ -130,17 +130,16 @@ module Shout
             :control_min,                                   0,
             :control_get_server_certificate_as_pem,         1,
             :control_get_server_certificate_chain_as_pem,   2,
-            :control_max,                               32767
+            :control_max, 32_767
           ]
 
           enum :shout_event_t, [
-            :event_min,                       0,
+            :event_min, 0,
             :event_tls_check_peer_certificate, 1,
-            :event_max,                   32767
+            :event_max, 32_767
           ]
         end
       end
-
     end
   end
 end

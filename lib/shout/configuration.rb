@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 module Shout
+  # Base class for configuration objects that read and write settings on a
+  # libshout handle.
   class ConfigurationBase
     extend Delegation
 
@@ -9,12 +13,14 @@ module Shout
     end
   end
 
+  # Connection settings (host, mount, credentials, protocol, ...) stored on a
+  # libshout handle. Each attribute reads and writes the matching
+  # shout_get_*/shout_set_* function.
   class Configuration < ConfigurationBase
-
-    delegate_alias_to_shout :username   => :user,
-                            :pass       => :password,
-                            :mountpoint => :mount,
-                            :user_agent => :agent
+    delegate_alias_to_shout username: :user,
+                            pass: :password,
+                            mountpoint: :mount,
+                            user_agent: :agent
 
     delegate_to_shout :host, :port, :agent, :tls, :ca_directory, :ca_file,
                       :allowed_ciphers, :user, :password, :client_certificate,
@@ -39,6 +45,7 @@ module Shout
       content_format.set(format, usage, codecs)
     end
 
+    # Audio parameters advertised to the server (shout_set_audio_info).
     class AudioInfo < ConfigurationBase
       def bitrate=(value)
         set(SHOUT_AI_BITRATE, value)
@@ -83,9 +90,9 @@ module Shout
       private
 
       def set(key, value)
-        str_val = value.nil? ? nil : value.to_s
+        str_val = value&.to_s
         ret = ::Shout.shout_set_audio_info(shout, key.to_s, str_val)
-        Error.check_error(ret, shout) if ret.is_a?(Integer) && ret < 0
+        Error.check_error(ret, shout)
         value
       end
 
@@ -94,6 +101,7 @@ module Shout
       end
     end
 
+    # Stream description such as name, genre and URL (shout_set_meta).
     class Meta < ConfigurationBase
       def name=(value)
         set(SHOUT_META_NAME, value)
@@ -162,9 +170,9 @@ module Shout
       private
 
       def set(key, value)
-        str_val = value.nil? ? nil : value.to_s
+        str_val = value&.to_s
         ret = ::Shout.shout_set_meta(shout, key.to_s, str_val)
-        Error.check_error(ret, shout) if ret.is_a?(Integer) && ret < 0
+        Error.check_error(ret, shout)
         value
       end
 
@@ -173,35 +181,36 @@ module Shout
       end
     end
 
+    # Content format, usage and codecs of the stream (shout_set_content_format).
     class ContentFormat < ConfigurationBase
       def set(format, usage = SHOUT_USAGE_AUDIO, codecs = nil)
         fmt = Delegation::TypeConvertor.convert(format)
         ret = ::Shout.shout_set_content_format(shout, fmt, usage, codecs)
-        Error.check_error(ret, shout) if ret.is_a?(Integer) && ret < 0
+        Error.check_error(ret, shout)
         ret
       end
 
       def format
-        get_info[0]
+        info[0]
       end
 
       def usage
-        get_info[1]
+        info[1]
       end
 
       def codecs
-        get_info[2]
+        info[2]
       end
 
       private
 
-      def get_info
+      def info
         format_ptr = ::FFI::MemoryPointer.new(:uint)
         usage_ptr  = ::FFI::MemoryPointer.new(:uint)
         codecs_ptr = ::FFI::MemoryPointer.new(:pointer)
 
         ret = ::Shout.shout_get_content_format(shout, format_ptr, usage_ptr, codecs_ptr)
-        Error.check_error(ret, shout) if ret.is_a?(Integer) && ret < 0
+        Error.check_error(ret, shout)
 
         c_str_ptr = codecs_ptr.read_pointer
         codecs_str = c_str_ptr.null? ? nil : c_str_ptr.read_string
@@ -209,6 +218,5 @@ module Shout
         [format_ptr.read_uint, usage_ptr.read_uint, codecs_str]
       end
     end
-
   end
 end

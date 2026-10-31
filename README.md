@@ -194,20 +194,24 @@ connection.configure do |config|
 end
 ```
 
-## Running Tests
+## Development
 
-Make sure you are using Ruby 3.4.12:
+Make sure you are using Ruby 3.4.12, then install the dependencies:
 
 ```bash
 chruby 3.4.12
-bundle exec rspec
+bundle install
 ```
 
-The integration specs (`spec/integration`) need a local Icecast server on `localhost:9000` with source password `changeme`. They check their results through `/status-json.xsl`. To skip them, run:
+| Command | What it does |
+|---|---|
+| `bundle exec rake` | Runs the unit specs and RuboCop |
+| `bundle exec rspec` | Runs the unit specs only |
+| `bundle exec rake spec:integration` | Runs the integration specs (see below) |
+| `bundle exec rubocop` | Lints the code (`-a` fixes what it safely can) |
+| `COVERAGE=1 bundle exec rspec` | Also writes a coverage report to `coverage/lcov.info` |
 
-```bash
-bundle exec rspec --tag ~integration
-```
+The integration specs (`spec/integration`) need a local Icecast server on `localhost:9000` with source password `changeme`. They check their results through `/status-json.xsl`. They are skipped by default; `bundle exec rspec --tag integration` runs them as well.
 
 ## License
 

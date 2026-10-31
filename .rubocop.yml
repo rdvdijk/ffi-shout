@@ -1,0 +1,65 @@
+plugins:
+  - rubocop-rspec
+  - rubocop-rake
+  - rubocop-performance
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "coverage/**/*"
+    - "pkg/**/*"
+    - "vendor/**/*"
+
+# The FFI binding modules are long lists of attach_function / enum
+# declarations; splitting them up would not make them clearer.
+Metrics/AbcSize:
+  Exclude: ["lib/shout/ffi/functions.rb"]
+Metrics/BlockLength:
+  Exclude: ["lib/shout/ffi/**/*.rb", "spec/**/*.rb", "*.gemspec"]
+Metrics/MethodLength:
+  Max: 15
+  Exclude: ["lib/shout/ffi/**/*.rb"]
+Metrics/ModuleLength:
+  Exclude: ["spec/**/*.rb"]
+
+Style/Documentation:
+  Exclude: ["spec/**/*.rb"]
+
+# Specs mock libshout calls with `expect(...).to receive(...).and_return(...)`
+# and often check several facts about one call; these cops would require a
+# rewrite of most examples for little benefit.
+RSpec/MultipleExpectations:
+  Enabled: false
+RSpec/MessageSpies:
+  Enabled: false
+RSpec/StubbedMock:
+  Enabled: false
+RSpec/ExampleLength:
+  Max: 15
+RSpec/MultipleMemoizedHelpers:
+  Max: 8
+RSpec/NestedGroups:
+  Max: 4
+# Context names like "initialization" or "TLS modes" read fine here.
+RSpec/ContextWording:
+  Enabled: false
+# Integration specs describe behaviour against a server, not a class.
+RSpec/DescribeClass:
+  Exclude: ["spec/integration/**/*.rb"]
+RSpec/SpecFilePathFormat:
+  Exclude: ["spec/integration/**/*.rb"]
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# Connection is a thin facade over libshout's many calls.
+Metrics/ClassLength:
+  Max: 130
+# Internal helper that maps C return values to booleans; renaming would
+# change the public TypeConvertor API for no benefit.
+Naming/PredicateMethod:
+  AllowedMethods: [convert_return]

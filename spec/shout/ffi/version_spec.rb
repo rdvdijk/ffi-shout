@@ -1,8 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 module Shout
-  describe FFI::Version do
-    subject(:version) { FFI::Version.new }
+  RSpec.describe FFI::Version do
+    subject(:version) { described_class.new }
 
     it "gets the version string" do
       expect(version.string).to be_a(String)

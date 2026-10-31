@@ -1,4 +1,6 @@
-require 'socket'
+# frozen_string_literal: true
+
+require "socket"
 
 # A tiny HTTP server on a random local port that records each request and
 # answers with a canned response. With `respond: false` it accepts
@@ -6,7 +8,7 @@ require 'socket'
 class FakeHttpServer
   Request = Struct.new(:request_line, :headers) do
     def path
-      request_line.split(" ")[1]
+      request_line.split[1]
     end
   end
 

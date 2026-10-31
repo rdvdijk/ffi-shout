@@ -1,32 +1,31 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 module Shout
-  describe Connection do
-
-    subject(:connection) { Connection.new }
+  RSpec.describe Connection do
+    subject(:connection) { described_class.new }
 
     context "initialization" do
       it "initializes FFI::Shout" do
         expect(FFI::Shout).to receive(:new).and_call_original
-        Connection.new
+        described_class.new
       end
 
       it "yields self when block is given" do
-        expect { |block|
-          Connection.new(&block)
-        }.to yield_with_args(kind_of(Connection))
+        expect do |block|
+          described_class.new(&block)
+        end.to yield_with_args(kind_of(described_class))
       end
 
       it "sets initial configuration attributes" do
-        conn = Connection.new(host: "10.0.0.1", port: 8080, mount: "/live")
+        conn = described_class.new(host: "10.0.0.1", port: 8080, mount: "/live")
         expect(conn.configuration.host).to eql "10.0.0.1"
-        expect(conn.configuration.port).to eql 8080
+        expect(conn.configuration.port).to be 8080
         expect(conn.configuration.mount).to eql "/live"
       end
     end
 
     context "configuration" do
-      let(:configuration) { double(Configuration) }
+      let(:configuration) { instance_double(Configuration) }
 
       before do
         allow(Configuration).to receive(:new).and_return(configuration)
@@ -38,17 +37,17 @@ module Shout
       end
 
       it "yields the Configuration object in #configure" do
-        expect { |block|
+        expect do |block|
           connection.configure(&block)
-        }.to yield_with_args(configuration)
+        end.to yield_with_args(configuration)
       end
 
       it "returns self from #configure for chaining" do
-        expect(connection.configure { }).to eql connection
+        expect(connection.configure { |config| config }).to eql connection
       end
     end
 
-    context "#connect and #disconnect" do
+    describe "#connect and #disconnect" do
       it "calls shout_open on connect" do
         expect(::Shout).to receive(:shout_open).with(connection.shout).and_return(0)
         expect(connection.connect).to eql connection
@@ -56,9 +55,9 @@ module Shout
 
       it "raises error if shout_open fails" do
         expect(::Shout).to receive(:shout_open).with(connection.shout).and_return(SHOUTERR_NOCONNECT)
-        expect {
+        expect do
           connection.connect
-        }.to raise_error(ConnectionError)
+        end.to raise_error(ConnectionError)
       end
 
       it "supports block form for #connect with automatic disconnect" do
@@ -87,7 +86,7 @@ module Shout
       end
     end
 
-    context "#connected?" do
+    describe "#connected?" do
       it "returns true when shout_get_connected returns SHOUTERR_CONNECTED" do
         expect(::Shout).to receive(:shout_get_connected).with(connection.shout).and_return(SHOUTERR_CONNECTED)
         expect(connection.connected?).to be true
@@ -123,9 +122,9 @@ module Shout
 
       it "raises error when shout_send fails" do
         expect(::Shout).to receive(:shout_send).and_return(SHOUTERR_SOCKET)
-        expect {
+        expect do
           connection.send_data("chunk")
-        }.to raise_error(SocketError)
+        end.to raise_error(SocketError)
       end
 
       it "sends raw unparsed data via shout_send_raw" do
@@ -149,35 +148,35 @@ module Shout
 
       it "gets delay in milliseconds via shout_delay" do
         expect(::Shout).to receive(:shout_delay).with(connection.shout).and_return(50)
-        expect(connection.delay).to eql 50
+        expect(connection.delay).to be 50
       end
 
       it "gets queue length via shout_queuelen" do
         expect(::Shout).to receive(:shout_queuelen).with(connection.shout).and_return(1024)
-        expect(connection.queuelen).to eql 1024
+        expect(connection.queuelen).to be 1024
       end
     end
 
     context "metadata" do
       it "raises UnconnectedError if sending metadata while not connected" do
-        allow(connection).to receive(:connected?).and_return(false)
-        expect {
+        allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_UNCONNECTED)
+        expect do
           connection.send_metadata("Artist - Title")
-        }.to raise_error(UnconnectedError)
+        end.to raise_error(UnconnectedError)
       end
 
       it "raises ArgumentError when metadata is invalid type" do
-        allow(connection).to receive(:connected?).and_return(true)
-        expect {
-          connection.send_metadata(12345)
-        }.to raise_error(ArgumentError, /Expected Metadata, Hash, or String/)
+        allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
+        expect do
+          connection.send_metadata(12_345)
+        end.to raise_error(ArgumentError, /Expected Metadata, Hash, or String/)
       end
 
       context "over the HTTP protocol (default)" do
         let(:updater) { instance_double(HttpMetadata, update: "Metadata update successful") }
 
         before do
-          allow(connection).to receive(:connected?).and_return(true)
+          allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
           allow(HttpMetadata).to receive(:new).and_return(updater)
         end
 
@@ -229,7 +228,7 @@ module Shout
       context "over other protocols" do
         before do
           connection.configuration.protocol = :icy
-          allow(connection).to receive(:connected?).and_return(true)
+          allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
         end
 
         it "is not the HTTP protocol" do
@@ -263,24 +262,24 @@ module Shout
 
       it "returns the error number via #errno" do
         expect(::Shout).to receive(:shout_get_errno).with(connection.shout).and_return(0)
-        expect(connection.errno).to eql 0
+        expect(connection.errno).to be 0
       end
     end
 
     context "Class level methods and aliases" do
       it "provides Connection.open class method" do
-        conn = double(Connection)
-        expect(Connection).to receive(:new).and_return(conn)
+        conn = instance_double(described_class)
+        expect(described_class).to receive(:new).and_return(conn)
         expect(conn).to receive(:connect)
-        Connection.open
+        described_class.open
       end
 
       it "provides Connection.open class method with a block" do
-        conn = double(Connection)
-        expect(Connection).to receive(:new).and_return(conn)
+        conn = instance_double(described_class)
+        expect(described_class).to receive(:new).and_return(conn)
         expect(conn).to receive(:connect).and_yield(conn)
         yielded = nil
-        Connection.open { |c| yielded = c }
+        described_class.open { |c| yielded = c }
         expect(yielded).to eql conn
       end
 
@@ -289,9 +288,8 @@ module Shout
       end
 
       it "allows Shout.new to create a Connection" do
-        expect(::Shout.new).to be_a(Connection)
+        expect(::Shout.new).to be_a(described_class)
       end
     end
-
   end
 end

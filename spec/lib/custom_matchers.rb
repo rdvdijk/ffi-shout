@@ -1,4 +1,6 @@
-require_relative 'setter_getter'
+# frozen_string_literal: true
+
+require_relative "setter_getter"
 
 # Validate existence of a getter, setter and the default value.
 RSpec::Matchers.define :have_flag do |expected|
@@ -36,7 +38,7 @@ RSpec::Matchers.define :be_able_to_set do |expected|
   end
 
   match do |actual|
-    set_value(actual, expected) &&
+    sets_value?(actual, expected) &&
       has_value?(actual, expected)
   end
 end
@@ -68,36 +70,58 @@ RSpec::Matchers.define :have_getter do |expected|
   end
 end
 
-# Validate delegation to shout.
+# Validate that a configuration attribute delegates its reader and writer to
+# shout_get_<target> / shout_set_<target>, passing the shout pointer along.
 RSpec::Matchers.define :delegate do |from|
-  include SetterGetter
-
   chain :to do |target|
     @target = target
   end
 
   match do |subject|
-    @from = from
     @target ||= from
-    has_setter?(Shout, @target) &&
-      delegates_setter?(subject) &&
-      has_getter?(Shout, @target) &&
-      delegates_getter?(subject)
+    @problems = []
+    check_setter(subject, from)
+    check_getter(subject, from)
+    @problems.empty?
   end
 
-  def delegates_setter?(subject)
-    expect(Shout).to receive(:"shout_set_#{@target}").with(subject.shout, anything)
-    subject.send(:"#{@from}=", double)
-    true
-  rescue => e
-    false
+  failure_message do |subject|
+    "expected #{subject.class} to delegate ##{from} and ##{from}= to " \
+      "shout_get_#{@target} / shout_set_#{@target}, but #{@problems.join("; ")}"
   end
 
-  def delegates_getter?(subject)
-    expect(Shout).to receive(:"shout_get_#{@target}").with(subject.shout)
-    subject.send(:"#{@from}")
-    true
-  rescue => e
-    false
+  def check_setter(subject, from)
+    check(subject, :"shout_set_#{@target}", "##{from}=") do
+      subject.public_send(:"#{from}=", "value")
+    end
+  end
+
+  def check_getter(subject, from)
+    check(subject, :"shout_get_#{@target}", "##{from}") do
+      subject.public_send(from)
+    end
+  end
+
+  def check(subject, function, method_name, &block)
+    unless Shout.respond_to?(function)
+      @problems << "Shout.#{function} does not exist"
+      return
+    end
+
+    calls = record_calls(function, &block)
+    return if calls.any? { |args| args.first.equal?(subject.shout) }
+
+    @problems << "#{method_name} did not call Shout.#{function} with the shout pointer (calls: #{calls.inspect})"
+  rescue StandardError => e
+    @problems << "#{method_name} raised #{e.class}: #{e.message}"
+  end
+
+  # Stubs Shout.<function>, runs the block and returns the argument lists of
+  # all calls made to it.
+  def record_calls(function)
+    calls = []
+    allow(Shout).to receive(function) { |*args| calls << args and 0 }
+    yield
+    calls
   end
 end

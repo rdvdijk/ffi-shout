@@ -1,8 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 module Shout
-  describe Metadata do
-    subject(:metadata) { Metadata.new }
+  RSpec.describe Metadata do
+    subject(:metadata) { described_class.new }
 
     it "initializes an empty metadata structure" do
       expect(metadata.metadata_struct).to be_a(FFI::Metadata)
@@ -10,7 +10,7 @@ module Shout
     end
 
     it "initializes with attributes" do
-      meta = Metadata.new("song" => "Artist - Title", "genre" => "Electronic")
+      meta = described_class.new("song" => "Artist - Title", "genre" => "Electronic")
       expect(meta["song"]).to eql "Artist - Title"
       expect(meta["genre"]).to eql "Electronic"
       expect(meta.to_h).to eql("song" => "Artist - Title", "genre" => "Electronic")

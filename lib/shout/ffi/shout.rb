@@ -1,6 +1,7 @@
+# frozen_string_literal: true
+
 module Shout
   module FFI
-
     # ManagedStruct to automatically clean up shout_t when garbage collected.
     class Shout < ::FFI::ManagedStruct
       layout :dummy, :char # Not actually used, but FFI needs a layout
@@ -8,6 +9,7 @@ module Shout
       def initialize
         ptr = ::Shout.shout_new
         raise ::Shout::MallocError, "Unable to allocate shout_t structure" if ptr.nil? || ptr.null?
+
         super(ptr)
       end
 
@@ -15,6 +17,5 @@ module Shout
         ::Shout.shout_free(ptr)
       end
     end
-
   end
 end

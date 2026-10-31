@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SetterGetter
   def has_getter?(shout, flag)
     shout.respond_to?(:"shout_get_#{flag}")
@@ -7,8 +9,8 @@ module SetterGetter
     shout.respond_to?(:"shout_set_#{flag}")
   end
 
-  def set_value(shout, flag)
-    shout.send(:"shout_set_#{flag}", @shout_pointer, @value) == return_value
+  def sets_value?(shout, flag)
+    shout.public_send(:"shout_set_#{flag}", @shout_pointer, @value) == return_value
   end
 
   def return_value
@@ -16,7 +18,7 @@ module SetterGetter
   end
 
   def has_value?(shout, flag)
-    if @value && @value.is_a?(Float)
+    if @value.is_a?(Float)
       actual = actual_value(shout, flag)
       (actual - @value).abs < 0.0001
     elsif @value
@@ -27,6 +29,6 @@ module SetterGetter
   end
 
   def actual_value(shout, flag)
-    shout.send(:"shout_get_#{flag}", @shout_pointer)
+    shout.public_send(:"shout_get_#{flag}", @shout_pointer)
   end
 end

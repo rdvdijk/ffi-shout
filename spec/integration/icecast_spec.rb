@@ -1,22 +1,21 @@
-require 'spec_helper'
-require 'net/http'
-require 'json'
-require 'securerandom'
+# frozen_string_literal: true
 
-# Talks to a real Icecast server on localhost:9000 and checks the effects
-# through its public /status-json.xsl page.
+require "net/http"
+require "json"
+require "securerandom"
+
+# Helpers for talking to a real Icecast server on localhost:9000 and checking
+# the effects through its public /status-json.xsl page.
 #
 # Each connection runs in a forked child process. libshout calls block inside
-# C while holding the GVL, so a Ruby Timeout can't interrupt them. A child
-# process can always be killed, so a stuck call fails the test instead of
-# hanging the whole suite.
-describe "Icecast server integration", :integration => true do
-
-  ICECAST_HOST       = "localhost"
-  ICECAST_PORT       = 9000
-  ICECAST_MOUNT      = "/stream.mp3"
-  ICECAST_STATUS_URI = URI("http://#{ICECAST_HOST}:#{ICECAST_PORT}/status-json.xsl")
-  ICECAST_TIMEOUT    = 10
+# C, so a Ruby Timeout can't interrupt them. A child process can always be
+# killed, so a stuck call fails the test instead of hanging the whole suite.
+module IcecastIntegration
+  HOST       = "localhost"
+  PORT       = 9000
+  MOUNT      = "/stream.mp3"
+  STATUS_URI = URI("http://#{HOST}:#{PORT}/status-json.xsl")
+  TIMEOUT    = 10
 
   # One MPEG-1 Layer III frame (128 kbps, 44.1 kHz, stereo, 417 bytes). The
   # all-zero payload decodes as silence. Icecast only publishes a mount's
@@ -25,9 +24,9 @@ describe "Icecast server integration", :integration => true do
 
   def build_connection
     Shout::Connection.new do |c|
-      c.configuration.host = ICECAST_HOST
-      c.configuration.port = ICECAST_PORT
-      c.configuration.mount = ICECAST_MOUNT
+      c.configuration.host = HOST
+      c.configuration.port = PORT
+      c.configuration.mount = MOUNT
       c.configuration.user = "source"
       c.configuration.password = "changeme"
       c.configuration.protocol = :http
@@ -37,58 +36,49 @@ describe "Icecast server integration", :integration => true do
 
   # Returns the status entry for our mount, or nil if no source is on it.
   def mount_status
-    response = Net::HTTP.start(ICECAST_STATUS_URI.host, ICECAST_STATUS_URI.port,
-                               open_timeout: 2, read_timeout: 2) do |http|
-      http.get(ICECAST_STATUS_URI.request_uri)
-    end
-    expect(response.code).to eq("200"), "GET #{ICECAST_STATUS_URI} returned #{response.code}"
-
-    sources = JSON.parse(response.body).dig("icestats", "source")
+    sources = fetch_status.dig("icestats", "source")
     Array(sources.is_a?(Hash) ? [sources] : sources).find do |source|
-      source["listenurl"].to_s.end_with?(ICECAST_MOUNT)
+      source["listenurl"].to_s.end_with?(MOUNT)
     end
   end
 
-  def wait_for(description, timeout: ICECAST_TIMEOUT)
+  def fetch_status
+    response = Net::HTTP.start(STATUS_URI.host, STATUS_URI.port, open_timeout: 2, read_timeout: 2) do |http|
+      http.get(STATUS_URI.request_uri)
+    end
+    expect(response.code).to eq("200"), "GET #{STATUS_URI} returned #{response.code}"
+    JSON.parse(response.body)
+  end
+
+  def wait_for(description, timeout: TIMEOUT)
     deadline = Time.now + timeout
     loop do
       result = yield
       return result if result
       raise "Timed out after #{timeout}s waiting for #{description}" if Time.now > deadline
+
       sleep 0.25
     end
   end
 
   # Forks a child that connects, starts streaming silence, runs the block,
-  # prints "done" to a pipe and keeps streaming until it is killed. Waits for "done" (or
-  # an error message) and returns the child's pid.
-  def start_source
+  # reports "done" through a pipe and keeps streaming until it is killed.
+  # Waits for "done" (or an error message) and returns the child's pid.
+  def start_source(&)
     reader, writer = IO.pipe
     pid = fork do
       reader.close
-      begin
-        connection = build_connection
-        connection.connect
-        stream = -> { connection.send_data(SILENT_MP3_FRAME * 10); connection.sync }
-        stream.call
-        yield connection
-        writer.puts "done"
-        writer.flush
-        loop { stream.call }
-      rescue Exception => e
-        writer.puts "error: #{e.class}: #{e.message}"
-        writer.flush
-      ensure
-        exit!(0) # skip at_exit hooks (SimpleCov) in the child
-      end
+      run_source(writer, &)
     end
     writer.close
-    @child_pids << pid
+    child_pids << pid
 
-    ready = IO.select([reader], nil, nil, ICECAST_TIMEOUT)
-    raise "Source process did not report back within #{ICECAST_TIMEOUT}s (blocked in libshout?)" unless ready
+    ready = reader.wait_readable(TIMEOUT)
+    raise "Source process did not report back within #{TIMEOUT}s (blocked in libshout?)" unless ready
+
     message = reader.gets.to_s.strip
     raise "Source process failed: #{message}" unless message == "done"
+
     pid
   ensure
     reader&.close
@@ -100,17 +90,44 @@ describe "Icecast server integration", :integration => true do
   rescue Errno::ESRCH, Errno::ECHILD
     nil
   ensure
-    @child_pids.delete(pid)
+    child_pids.delete(pid)
   end
 
+  private
+
+  # Runs in the forked child.
+  def run_source(writer)
+    connection = build_connection
+    connection.connect
+    stream = -> { connection.send_data(SILENT_MP3_FRAME * 10) && connection.sync }
+    stream.call
+    yield connection
+    report(writer, "done")
+    loop { stream.call }
+  rescue StandardError => e
+    report(writer, "error: #{e.class}: #{e.message}")
+  ensure
+    exit!(0) # skip at_exit hooks (SimpleCov) in the child
+  end
+
+  def report(writer, message)
+    writer.puts message
+    writer.flush
+  end
+end
+
+RSpec.describe "Icecast server integration", :integration do
+  include IcecastIntegration
+
+  let(:child_pids) { [] }
+
   before do
-    @child_pids = []
     # A source killed by a previous example can linger briefly on the server.
-    wait_for("#{ICECAST_MOUNT} to be free before the test") { mount_status.nil? }
+    wait_for("#{IcecastIntegration::MOUNT} to be free before the test") { mount_status.nil? }
   end
 
   after do
-    @child_pids.dup.each { |pid| stop_source(pid) }
+    child_pids.dup.each { |pid| stop_source(pid) }
   end
 
   it "connects as a source and shows up on the mount" do
@@ -118,11 +135,11 @@ describe "Icecast server integration", :integration => true do
       raise "connected? returned false" unless conn.connected?
     end
 
-    status = wait_for("#{ICECAST_MOUNT} to appear in #{ICECAST_STATUS_URI}") { mount_status }
-    expect(status["listenurl"]).to end_with(ICECAST_MOUNT)
+    status = wait_for("#{IcecastIntegration::MOUNT} to appear in #{IcecastIntegration::STATUS_URI}") { mount_status }
+    expect(status["listenurl"]).to end_with(IcecastIntegration::MOUNT)
 
     stop_source(pid)
-    wait_for("#{ICECAST_MOUNT} to disappear after disconnect") { mount_status.nil? }
+    wait_for("#{IcecastIntegration::MOUNT} to disappear after disconnect") { mount_status.nil? }
   end
 
   it "sends metadata that is visible on the mount" do
@@ -132,11 +149,10 @@ describe "Icecast server integration", :integration => true do
       conn.send_metadata(song: title)
     end
 
-    status = wait_for("title #{title.inspect} on #{ICECAST_MOUNT}") do
+    status = wait_for("title #{title.inspect} on #{IcecastIntegration::MOUNT}") do
       s = mount_status
       s if s && s["title"] == title
     end
     expect(status["title"]).to eq(title)
   end
-
 end

@@ -1,6 +1,9 @@
-module Shout
-  class Connection
+# frozen_string_literal: true
 
+module Shout
+  # A source connection to an Icecast server: configure it, connect, send
+  # audio data and update the stream's metadata.
+  class Connection
     attr_reader :shout
 
     # Seconds to wait for the server when updating metadata over HTTP.
@@ -10,10 +13,10 @@ module Shout
       @metadata_timeout || HttpMetadata::DEFAULT_TIMEOUT
     end
 
-    def self.open(*args, &block)
-      connection = new(*args)
+    def self.open(*, &)
+      connection = new(*)
       if block_given?
-        connection.connect(&block)
+        connection.connect(&)
       else
         connection.connect
         connection
@@ -24,9 +27,7 @@ module Shout
       @shout = FFI::Shout.new
 
       attributes.each do |key, value|
-        if configuration.respond_to?(:"#{key}=")
-          configuration.public_send(:"#{key}=", value)
-        end
+        configuration.public_send(:"#{key}=", value) if configuration.respond_to?(:"#{key}=")
       end
 
       yield self if block_given?
@@ -55,14 +56,14 @@ module Shout
         self
       end
     end
-    alias_method :open, :connect
+    alias open connect
 
     def disconnect
       ret = ::Shout.shout_close(shout)
-      Error.check_error(ret, shout) if ret < 0 && ret != SHOUTERR_UNCONNECTED
+      Error.check_error(ret, shout) unless ret == SHOUTERR_UNCONNECTED
       ret
     end
-    alias_method :close, :disconnect
+    alias close disconnect
 
     def connected?
       ::Shout.shout_get_connected(shout) == SHOUTERR_CONNECTED
@@ -75,12 +76,12 @@ module Shout
       ptr = ::FFI::MemoryPointer.new(:char, len)
       ptr.put_bytes(0, data_str)
       ret = ::Shout.shout_send(shout, ptr, len)
-      Error.check_error(ret, shout) if ret < 0
+      Error.check_error(ret, shout)
       ret
     end
-    alias_method :send, :send_data
-    alias_method :write, :send_data
-    alias_method :<<, :send_data
+    alias send send_data
+    alias write send_data
+    alias << send_data
 
     def send_raw(data)
       data_str = data.to_s
@@ -89,13 +90,13 @@ module Shout
       ptr = ::FFI::MemoryPointer.new(:char, len)
       ptr.put_bytes(0, data_str)
       ret = ::Shout.shout_send_raw(shout, ptr, len)
-      Error.check_error(ret, shout) if ret < 0
+      Error.check_error(ret, shout)
       ret
     end
 
     def queuelen
       ret = ::Shout.shout_queuelen(shout)
-      Error.check_error(ret, shout) if ret < 0
+      Error.check_error(ret, shout)
       ret
     end
 
@@ -105,24 +106,14 @@ module Shout
 
     def delay
       ret = ::Shout.shout_delay(shout)
-      Error.check_error(ret, shout) if ret < 0
+      Error.check_error(ret, shout)
       ret
     end
 
     def send_metadata(metadata_or_hash)
       raise UnconnectedError, "Cannot send metadata to an unconnected stream" unless connected?
 
-      metadata = case metadata_or_hash
-                 when Metadata
-                   metadata_or_hash
-                 when Hash
-                   Metadata.new(metadata_or_hash)
-                 when String
-                   Metadata.new("song" => metadata_or_hash)
-                 else
-                   raise ArgumentError, "Expected Metadata, Hash, or String, got #{metadata_or_hash.class}"
-                 end
-
+      metadata = coerce_metadata(metadata_or_hash)
       if http_protocol?
         # libshout's own HTTP metadata update can loop forever; see HttpMetadata.
         HttpMetadata.new(configuration, timeout: metadata_timeout).update(metadata)
@@ -132,8 +123,8 @@ module Shout
       end
       metadata
     end
-    alias_method :update_metadata, :send_metadata
-    alias_method :metadata=, :send_metadata
+    alias update_metadata send_metadata
+    alias metadata= send_metadata
 
     def error
       ::Shout.shout_get_error(shout)
@@ -147,6 +138,16 @@ module Shout
       ::Shout.shout_get_errno(shout)
     end
 
+    private
+
+    def coerce_metadata(value)
+      case value
+      when Metadata then value
+      when Hash then Metadata.new(value)
+      when String then Metadata.new("song" => value)
+      else raise ArgumentError, "Expected Metadata, Hash, or String, got #{value.class}"
+      end
+    end
   end
 
   # Alias Client to Connection for convenience

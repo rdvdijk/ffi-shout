@@ -1,5 +1,8 @@
+# frozen_string_literal: true
+
 module Shout
   module FFI
+    # The version of the loaded libshout library (shout_version).
     class Version
       attr_reader :string, :major, :minor, :patch
 

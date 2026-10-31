@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "net/http"
 require "openssl"
 require "uri"
@@ -13,7 +15,7 @@ module Shout
   # closes again, and libshout retries forever without ever returning. See
   # https://gitlab.xiph.org/xiph/icecast-libshout/-/issues/2341
   class HttpMetadata
-    PATH            = "/admin/metadata".freeze
+    PATH            = "/admin/metadata"
     DEFAULT_TIMEOUT = 5
 
     PLAIN_TLS_MODES = [SHOUT_TLS_DISABLED, SHOUT_TLS_AUTO].freeze
@@ -34,19 +36,22 @@ module Shout
     # Sends +metadata+ (a Shout::Metadata) for the configured mount. Returns
     # the server's response message, or raises a Shout::ShoutError.
     def update(metadata)
-      request = Net::HTTP::Get.new("#{PATH}?#{query(metadata)}")
-      request.basic_auth(configuration.user.to_s, configuration.password.to_s)
-      request["User-Agent"] = configuration.agent if configuration.agent
-
-      handle_response(http.request(request))
+      handle_response(http.request(build_request(metadata)))
     rescue *NETWORK_ERRORS => e
       raise ConnectionError, "Metadata update failed: #{e.class}: #{e.message}"
     end
 
     private
 
+    def build_request(metadata)
+      request = Net::HTTP::Get.new("#{PATH}?#{query(metadata)}")
+      request.basic_auth(configuration.user.to_s, configuration.password.to_s)
+      request["User-Agent"] = configuration.agent if configuration.agent
+      request
+    end
+
     def query(metadata)
-      params = [["mode", "updinfo"], ["charset", "UTF-8"], ["mount", configuration.mount.to_s]]
+      params = [%w[mode updinfo], %w[charset UTF-8], ["mount", configuration.mount.to_s]]
       params.concat(metadata.to_h.to_a)
       params.map { |key, value| "#{encode(key)}=#{encode(value)}" }.join("&")
     end
@@ -74,6 +79,10 @@ module Shout
 
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      configure_ca(http)
+    end
+
+    def configure_ca(http)
       http.ca_file = configuration.ca_file if configuration.ca_file
       http.ca_path = configuration.ca_directory if configuration.ca_directory
     end
