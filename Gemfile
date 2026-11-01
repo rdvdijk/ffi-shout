@@ -13,6 +13,6 @@ group :development, :test do
   gem "rubocop-performance", require: false
   gem "rubocop-rake", require: false
   gem "rubocop-rspec", require: false
-  gem "simplecov", "~> 0.22", require: false
+  gem "simplecov", "~> 1.2", require: false
   gem "simplecov-lcov", "~> 0.8", require: false
 end
