@@ -25,9 +25,12 @@ class FakeHttpServer
     @thread = Thread.new { serve }
   end
 
+  # Kills the server thread before closing the socket: on TruffleRuby,
+  # closing a socket doesn't wake a thread blocked in #accept on it.
   def stop
-    @server.close
+    @thread.kill
     @thread.join
+    @server.close
     @clients.each(&:close)
   end
 
@@ -45,7 +48,7 @@ class FakeHttpServer
       handle(client)
     end
   rescue IOError, Errno::EBADF
-    nil # server socket closed by #stop
+    nil # server socket closed
   rescue StandardError
     retry # e.g. a TLS handshake that isn't HTTP; keep serving
   end
