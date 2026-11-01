@@ -2,29 +2,24 @@
 
 require "ffi"
 require "shout/version"
-require "shout/ffi"
+require "shout/constants"
 require "shout/error"
+require "shout/native"
 require "shout/delegation"
 require "shout/configuration"
 require "shout/metadata"
 require "shout/http_metadata"
 require "shout/connection"
 
-# Ruby bindings for libshout, the streaming library for Icecast. The libshout
-# C functions are attached as module functions on Shout (see
-# Shout::FFI::Functions).
+# Ruby bindings for libshout, the streaming library for Icecast. Start with
+# Shout::Connection; the raw libshout functions live in Shout::Native.
 module Shout
-  extend ::FFI::Library
-
-  ffi_lib ["shout", "libshout.so.3", "libshout.so"]
-
-  FFI.bind(self)
-
   # Initialize the shout library
-  shout_init
+  Native.shout_init
 
+  # The version of the loaded libshout library.
   def self.version
-    FFI::Version.new
+    LibraryVersion.new
   end
 
   def self.new(**, &)

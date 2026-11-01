@@ -6,14 +6,14 @@ module Shout
   class Metadata
     include Enumerable
 
-    # The libshout shout_metadata_t handle (an FFI::Metadata).
+    # The libshout shout_metadata_t handle (a Native::MetadataHandle).
     attr_reader :handle
 
     # Deprecated name for #handle, from when it was an FFI struct.
     alias metadata_struct handle
 
     def initialize(attributes = {})
-      @handle = FFI::Metadata.new
+      @handle = Native.shout_metadata_new
       @attributes = {}
 
       attributes.each do |key, value|
@@ -25,7 +25,7 @@ module Shout
       key_str = name.to_s.encode("UTF-8")
       val_str = value.to_s.encode("UTF-8")
 
-      Error.check_error(::Shout.shout_metadata_add(@handle, key_str, val_str))
+      Error.check_error(Native.shout_metadata_add(@handle, key_str, val_str))
 
       @attributes[key_str] = val_str
       self

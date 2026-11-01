@@ -89,24 +89,24 @@ module Shout
       end
 
       it "includes message from shout_get_error when shout pointer provided" do
-        shout_ptr = ::FFI::Pointer.new(0x1234)
-        allow(::Shout).to receive(:shout_get_error).with(shout_ptr).and_return("Cannot connect to server")
+        shout_ptr = FFI::Pointer.new(0x1234)
+        allow(Native).to receive(:shout_get_error).with(shout_ptr).and_return("Cannot connect to server")
         expect do
           described_class.check_error(-2, shout_ptr)
         end.to raise_error(ConnectionError, "Cannot connect to server")
       end
 
       it "falls back to a generic message when libshout has no error text" do
-        shout_ptr = ::FFI::Pointer.new(0x1234)
-        allow(::Shout).to receive(:shout_get_error).with(shout_ptr).and_return("")
+        shout_ptr = FFI::Pointer.new(0x1234)
+        allow(Native).to receive(:shout_get_error).with(shout_ptr).and_return("")
         expect do
           described_class.check_error(-2, shout_ptr)
         end.to raise_error(ConnectionError, "libshout error code -2")
       end
 
       it "falls back to a generic message when reading the error text fails" do
-        shout_ptr = ::FFI::Pointer.new(0x1234)
-        allow(::Shout).to receive(:shout_get_error).and_raise(ArgumentError)
+        shout_ptr = FFI::Pointer.new(0x1234)
+        allow(Native).to receive(:shout_get_error).and_raise(ArgumentError)
         expect do
           described_class.check_error(-2, shout_ptr)
         end.to raise_error(ConnectionError, "libshout error code -2")

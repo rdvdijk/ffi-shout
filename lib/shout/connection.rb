@@ -26,7 +26,7 @@ module Shout
     # Connection.new(host: "localhost", port: 8000, mount: "/live.mp3").
     # Raises ArgumentError for attributes the configuration doesn't have.
     def initialize(**attributes)
-      @shout = FFI::Shout.new
+      @shout = Native.shout_new
       assign_attributes(attributes)
 
       yield self if block_given?
@@ -45,7 +45,7 @@ module Shout
     # block, yields the connection, disconnects afterwards (also when the
     # block raises) and returns the block's value.
     def connect
-      Error.check_error(::Shout.shout_open(shout), shout)
+      Error.check_error(Native.shout_open(shout), shout)
       return self unless block_given?
 
       begin
@@ -58,19 +58,19 @@ module Shout
 
     # Disconnects; does nothing when not connected.
     def disconnect
-      ret = ::Shout.shout_close(shout)
+      ret = Native.shout_close(shout)
       Error.check_error(ret, shout) unless ret == SHOUTERR_UNCONNECTED
       self
     end
     alias close disconnect
 
     def connected?
-      ::Shout.shout_get_connected(shout) == SHOUTERR_CONNECTED
+      Native.shout_get_connected(shout) == SHOUTERR_CONNECTED
     end
 
     # Sends audio data, which libshout parses for timing information.
     def send_data(data)
-      with_buffer(data) { |ptr, len| Error.check_error(::Shout.shout_send(shout, ptr, len), shout) }
+      with_buffer(data) { |ptr, len| Error.check_error(Native.shout_send(shout, ptr, len), shout) }
       self
     end
     alias write send_data
@@ -79,24 +79,24 @@ module Shout
     # Sends data without parsing it. Returns the number of bytes written.
     def send_raw(data)
       with_buffer(data) do |ptr, len|
-        ::Shout.shout_send_raw(shout, ptr, len).tap { |ret| Error.check_error(ret, shout) }
+        Native.shout_send_raw(shout, ptr, len).tap { |ret| Error.check_error(ret, shout) }
       end
     end
 
     # Number of bytes waiting in the send queue (only useful in nonblocking mode).
     def queuelen
-      ::Shout.shout_queuelen(shout).tap { |ret| Error.check_error(ret, shout) }
+      Native.shout_queuelen(shout).tap { |ret| Error.check_error(ret, shout) }
     end
 
     # Sleeps until it is time to send more data.
     def sync
-      ::Shout.shout_sync(shout)
+      Native.shout_sync(shout)
       self
     end
 
     # Milliseconds to wait before sending more data.
     def delay
-      ::Shout.shout_delay(shout).tap { |ret| Error.check_error(ret, shout) }
+      Native.shout_delay(shout).tap { |ret| Error.check_error(ret, shout) }
     end
 
     # Updates the stream's metadata. Accepts a Metadata, a Hash or a String
@@ -109,7 +109,7 @@ module Shout
         # libshout's own HTTP metadata update can loop forever; see HttpMetadata.
         HttpMetadata.new(configuration, timeout: metadata_timeout).update(metadata)
       else
-        Error.check_error(::Shout.shout_set_metadata_utf8(shout, metadata.handle), shout)
+        Error.check_error(Native.shout_set_metadata_utf8(shout, metadata.handle), shout)
       end
       metadata
     end
@@ -117,11 +117,11 @@ module Shout
     alias metadata= send_metadata
 
     def error
-      ::Shout.shout_get_error(shout)
+      Native.shout_get_error(shout)
     end
 
     def errno
-      ::Shout.shout_get_errno(shout)
+      Native.shout_get_errno(shout)
     end
 
     private
@@ -134,7 +134,7 @@ module Shout
     # calls release the GVL, so they must not read a Ruby string's memory.
     def with_buffer(data)
       bytes = data.to_s
-      ptr = ::FFI::MemoryPointer.new(:char, bytes.bytesize)
+      ptr = FFI::MemoryPointer.new(:char, bytes.bytesize)
       ptr.put_bytes(0, bytes)
       yield ptr, bytes.bytesize
     end

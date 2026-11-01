@@ -56,7 +56,7 @@ module Shout
       ptr = shout_ptr.respond_to?(:to_ptr) ? shout_ptr.to_ptr : shout_ptr
       return if ptr.nil? || ptr.null?
 
-      message = Shout.shout_get_error(ptr)
+      message = Native.shout_get_error(ptr)
       message unless message.nil? || message.empty?
     rescue StandardError
       nil # fall back to the generic message

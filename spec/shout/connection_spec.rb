@@ -5,8 +5,8 @@ module Shout
     subject(:connection) { described_class.new }
 
     context "initialization" do
-      it "initializes FFI::Shout" do
-        expect(FFI::Shout).to receive(:new).and_call_original
+      it "creates a libshout handle" do
+        expect(Native).to receive(:shout_new).and_call_original
         described_class.new
       end
 
@@ -30,7 +30,7 @@ module Shout
       end
 
       it "passes attributes through Connection.open" do
-        allow(::Shout).to receive(:shout_open).and_return(0)
+        allow(Native).to receive(:shout_open).and_return(0)
         expect(described_class.open(host: "10.0.0.2").configuration.host).to eql "10.0.0.2"
       end
     end
@@ -43,7 +43,7 @@ module Shout
       end
 
       it "initializes a Configuration object" do
-        expect(Configuration).to receive(:new).with(kind_of(FFI::Shout))
+        expect(Configuration).to receive(:new).with(kind_of(Native::Handle))
         connection.configuration
       end
 
@@ -60,20 +60,20 @@ module Shout
 
     describe "#connect and #disconnect" do
       it "calls shout_open on connect" do
-        expect(::Shout).to receive(:shout_open).with(connection.shout).and_return(0)
+        expect(Native).to receive(:shout_open).with(connection.shout).and_return(0)
         expect(connection.connect).to eql connection
       end
 
       it "raises error if shout_open fails" do
-        expect(::Shout).to receive(:shout_open).with(connection.shout).and_return(SHOUTERR_NOCONNECT)
+        expect(Native).to receive(:shout_open).with(connection.shout).and_return(SHOUTERR_NOCONNECT)
         expect do
           connection.connect
         end.to raise_error(ConnectionError)
       end
 
       it "supports block form for #connect with automatic disconnect" do
-        expect(::Shout).to receive(:shout_open).with(connection.shout).and_return(0)
-        expect(::Shout).to receive(:shout_close).with(connection.shout).and_return(0)
+        expect(Native).to receive(:shout_open).with(connection.shout).and_return(0)
+        expect(Native).to receive(:shout_close).with(connection.shout).and_return(0)
 
         yielded = nil
         connection.connect do |conn|
@@ -84,7 +84,7 @@ module Shout
       end
 
       it "calls shout_close on disconnect and returns the connection" do
-        expect(::Shout).to receive(:shout_close).with(connection.shout).and_return(0)
+        expect(Native).to receive(:shout_close).with(connection.shout).and_return(0)
         expect(connection.disconnect).to be connection
       end
 
@@ -93,27 +93,27 @@ module Shout
       end
 
       it "returns the block's value from #connect with a block" do
-        allow(::Shout).to receive_messages(shout_open: 0, shout_close: 0)
+        allow(Native).to receive_messages(shout_open: 0, shout_close: 0)
         expect(connection.connect { :result }).to be :result
       end
 
       it "aliases open to connect and close to disconnect" do
-        expect(::Shout).to receive(:shout_open).with(connection.shout).and_return(0)
+        expect(Native).to receive(:shout_open).with(connection.shout).and_return(0)
         connection.open
 
-        expect(::Shout).to receive(:shout_close).with(connection.shout).and_return(0)
+        expect(Native).to receive(:shout_close).with(connection.shout).and_return(0)
         connection.close
       end
     end
 
     describe "#connected?" do
       it "returns true when shout_get_connected returns SHOUTERR_CONNECTED" do
-        expect(::Shout).to receive(:shout_get_connected).with(connection.shout).and_return(SHOUTERR_CONNECTED)
+        expect(Native).to receive(:shout_get_connected).with(connection.shout).and_return(SHOUTERR_CONNECTED)
         expect(connection.connected?).to be true
       end
 
       it "returns false when shout_get_connected returns SHOUTERR_UNCONNECTED" do
-        expect(::Shout).to receive(:shout_get_connected).with(connection.shout).and_return(SHOUTERR_UNCONNECTED)
+        expect(Native).to receive(:shout_get_connected).with(connection.shout).and_return(SHOUTERR_UNCONNECTED)
         expect(connection.connected?).to be false
       end
     end
@@ -121,7 +121,7 @@ module Shout
     context "sending data" do
       it "sends data via shout_send" do
         data = "test audio data payload"
-        expect(::Shout).to receive(:shout_send) do |shout, ptr, len|
+        expect(Native).to receive(:shout_send) do |shout, ptr, len|
           expect(shout).to eql connection.shout
           expect(ptr.read_string(len)).to eql data
           expect(len).to eql data.bytesize
@@ -132,13 +132,13 @@ module Shout
       end
 
       it "returns the connection, so sends can be chained" do
-        expect(::Shout).to receive(:shout_send).twice.and_return(0)
+        expect(Native).to receive(:shout_send).twice.and_return(0)
         expect(connection << "a" << "b").to be connection
       end
 
       it "aliases write and << to send_data" do
         data = "audio chunk"
-        expect(::Shout).to receive(:shout_send).twice.and_return(0)
+        expect(Native).to receive(:shout_send).twice.and_return(0)
 
         connection.write(data)
         connection << data
@@ -149,7 +149,7 @@ module Shout
       end
 
       it "raises error when shout_send fails" do
-        expect(::Shout).to receive(:shout_send).and_return(SHOUTERR_SOCKET)
+        expect(Native).to receive(:shout_send).and_return(SHOUTERR_SOCKET)
         expect do
           connection.send_data("chunk")
         end.to raise_error(SocketIOError)
@@ -157,7 +157,7 @@ module Shout
 
       it "sends raw unparsed data via shout_send_raw" do
         data = "raw data"
-        expect(::Shout).to receive(:shout_send_raw) do |shout, ptr, len|
+        expect(Native).to receive(:shout_send_raw) do |shout, ptr, len|
           expect(shout).to eql connection.shout
           expect(ptr.read_string(len)).to eql data
           expect(len).to eql data.bytesize
@@ -170,31 +170,31 @@ module Shout
 
     context "timing and pacing" do
       it "syncs stream timing via shout_sync and returns the connection" do
-        expect(::Shout).to receive(:shout_sync).with(connection.shout)
+        expect(Native).to receive(:shout_sync).with(connection.shout)
         expect(connection.sync).to be connection
       end
 
       it "gets delay in milliseconds via shout_delay" do
-        expect(::Shout).to receive(:shout_delay).with(connection.shout).and_return(50)
+        expect(Native).to receive(:shout_delay).with(connection.shout).and_return(50)
         expect(connection.delay).to be 50
       end
 
       it "gets queue length via shout_queuelen" do
-        expect(::Shout).to receive(:shout_queuelen).with(connection.shout).and_return(1024)
+        expect(Native).to receive(:shout_queuelen).with(connection.shout).and_return(1024)
         expect(connection.queuelen).to be 1024
       end
     end
 
     context "metadata" do
       it "raises UnconnectedError if sending metadata while not connected" do
-        allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_UNCONNECTED)
+        allow(Native).to receive(:shout_get_connected).and_return(SHOUTERR_UNCONNECTED)
         expect do
           connection.send_metadata("Artist - Title")
         end.to raise_error(UnconnectedError)
       end
 
       it "raises ArgumentError when metadata is invalid type" do
-        allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
+        allow(Native).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
         expect do
           connection.send_metadata(12_345)
         end.to raise_error(ArgumentError, /Expected Metadata, Hash, or String/)
@@ -204,7 +204,7 @@ module Shout
         let(:updater) { instance_double(HttpMetadata, update: "Metadata update successful") }
 
         before do
-          allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
+          allow(Native).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
           allow(HttpMetadata).to receive(:new).and_return(updater)
         end
 
@@ -213,7 +213,7 @@ module Shout
         end
 
         it "sends metadata through HttpMetadata instead of libshout" do
-          expect(::Shout).not_to receive(:shout_set_metadata_utf8)
+          expect(Native).not_to receive(:shout_set_metadata_utf8)
           expect(HttpMetadata).to receive(:new)
             .with(connection.configuration, timeout: HttpMetadata::DEFAULT_TIMEOUT)
           expect(updater).to receive(:update) do |metadata|
@@ -256,12 +256,12 @@ module Shout
       context "over other protocols" do
         before do
           connection.configuration.protocol = :icy
-          allow(::Shout).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
+          allow(Native).to receive(:shout_get_connected).and_return(SHOUTERR_CONNECTED)
         end
 
         it "sends metadata via shout_set_metadata_utf8" do
           expect(HttpMetadata).not_to receive(:new)
-          expect(::Shout).to receive(:shout_set_metadata_utf8) do |shout, meta_ptr|
+          expect(Native).to receive(:shout_set_metadata_utf8) do |shout, meta_ptr|
             expect(shout).to eql connection.shout
             expect(meta_ptr).to respond_to(:to_ptr)
             0
@@ -272,7 +272,7 @@ module Shout
         end
 
         it "raises when shout_set_metadata_utf8 fails" do
-          expect(::Shout).to receive(:shout_set_metadata_utf8).and_return(SHOUTERR_METADATA)
+          expect(Native).to receive(:shout_set_metadata_utf8).and_return(SHOUTERR_METADATA)
           expect { connection.send_metadata("Track") }.to raise_error(MetadataError)
         end
       end
@@ -280,12 +280,12 @@ module Shout
 
     context "error reporting" do
       it "returns the error string via #error" do
-        expect(::Shout).to receive(:shout_get_error).with(connection.shout).and_return("No error")
+        expect(Native).to receive(:shout_get_error).with(connection.shout).and_return("No error")
         expect(connection.error).to eql "No error"
       end
 
       it "returns the error number via #errno" do
-        expect(::Shout).to receive(:shout_get_errno).with(connection.shout).and_return(0)
+        expect(Native).to receive(:shout_get_errno).with(connection.shout).and_return(0)
         expect(connection.errno).to be 0
       end
     end
@@ -308,7 +308,7 @@ module Shout
       end
 
       it "returns the block's value from Connection.open" do
-        allow(::Shout).to receive_messages(shout_open: 0, shout_close: 0)
+        allow(Native).to receive_messages(shout_open: 0, shout_close: 0)
         expect(described_class.open(host: "10.0.0.3") { |conn| conn.configuration.host }).to eql "10.0.0.3"
       end
 

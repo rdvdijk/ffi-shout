@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Shout
-  RSpec.describe FFI::Version do
+  RSpec.describe LibraryVersion do
     subject(:version) { described_class.new }
 
     it "gets the version string" do
@@ -20,7 +20,7 @@ module Shout
     end
 
     it "exposes version via Shout.version" do
-      expect(::Shout.version.to_s).to eql version.string
+      expect(Shout.version.to_s).to eql version.string
     end
 
     it "formats major.minor.patch as #number" do
@@ -35,7 +35,7 @@ module Shout
     describe ".ensure_supported!" do
       def fake_version(number)
         major, minor, patch = number.split(".").map(&:to_i)
-        allow(::Shout).to receive(:shout_version) do |major_ptr, minor_ptr, patch_ptr|
+        allow(Native).to receive(:shout_version) do |major_ptr, minor_ptr, patch_ptr|
           major_ptr.write_int(major)
           minor_ptr.write_int(minor)
           patch_ptr.write_int(patch)

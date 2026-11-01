@@ -26,7 +26,7 @@ module Shout
     def define_setter_delegator(from, to, preset = "shout")
       define_method(:"#{from}=") do |value|
         converted_value = TypeConvertor.convert(value)
-        ret = ::Shout.public_send(:"#{preset}_set_#{to}", shout, converted_value)
+        ret = Native.public_send(:"#{preset}_set_#{to}", shout, converted_value)
         Error.check_error(ret, shout)
         value
       end
@@ -34,7 +34,7 @@ module Shout
 
     def define_getter_delegator(from, to, preset = "shout")
       define_method(:"#{from}") do
-        ::Shout.public_send(:"#{preset}_get_#{to}", shout)
+        Native.public_send(:"#{preset}_get_#{to}", shout)
       end
     end
 
@@ -46,7 +46,7 @@ module Shout
 
     # Converts Ruby values to what libshout's setters expect. Booleans become
     # 1 / 0; symbols for formats, protocols, TLS and blocking modes are
-    # converted by the FFI enums in Shout::FFI::Enums, which also make the
+    # converted by the FFI enums in Shout::Native, which also make the
     # matching readers return symbols such as :mp3.
     class TypeConvertor
       # Symbols that libshout treats as another name for the same value.

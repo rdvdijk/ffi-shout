@@ -2,7 +2,7 @@
 
 module Shout
   RSpec.describe Configuration do
-    let(:shout) { instance_double(::FFI::Pointer) }
+    let(:shout) { instance_double(FFI::Pointer) }
 
     subject(:configuration) { described_class.new(shout) }
 
@@ -88,12 +88,12 @@ module Shout
 
     context "nonblocking?" do
       it "is true in non-blocking mode" do
-        allow(::Shout).to receive(:shout_get_nonblocking).and_return(:none)
+        allow(Native).to receive(:shout_get_nonblocking).and_return(:none)
         expect(configuration.nonblocking?).to be true
       end
 
       it "is false in blocking mode" do
-        allow(::Shout).to receive(:shout_get_nonblocking).and_return(:full)
+        allow(Native).to receive(:shout_get_nonblocking).and_return(:full)
         expect(configuration.nonblocking?).to be false
       end
     end
@@ -108,23 +108,23 @@ module Shout
       end
 
       it "warns about obsolete writers and names the replacement" do
-        expect(::Shout).to receive(:shout_set_genre).with(shout, "Rock").and_return(0)
+        expect(Native).to receive(:shout_set_genre).with(shout, "Rock").and_return(0)
         expect { configuration.genre = "Rock" }
           .to output(/Configuration#genre= is obsolete in libshout; use meta.genre= instead/).to_stderr
       end
 
       it "warns about format= and points to set_content_format" do
-        allow(::Shout).to receive(:shout_set_format).and_return(0)
+        allow(Native).to receive(:shout_set_format).and_return(0)
         expect { configuration.format = :mp3 }.to output(/use set_content_format instead/).to_stderr
       end
 
       it "warns about dumpfile= without a replacement" do
-        allow(::Shout).to receive(:shout_set_dumpfile).and_return(0)
+        allow(Native).to receive(:shout_set_dumpfile).and_return(0)
         expect { configuration.dumpfile = "dump" }.to output(/dumpfile= is obsolete in libshout\n/).to_stderr
       end
 
       it "does not warn about the readers" do
-        allow(::Shout).to receive(:shout_get_genre).and_return("Rock")
+        allow(Native).to receive(:shout_get_genre).and_return("Rock")
         expect { configuration.genre }.not_to output.to_stderr
       end
     end
@@ -133,50 +133,50 @@ module Shout
       subject(:audio_info) { configuration.audio_info }
 
       it "delegates #bitrate= to shout_set_audio_info" do
-        expect(::Shout).to receive(:shout_set_audio_info).with(shout, "bitrate", "128").and_return(0)
+        expect(Native).to receive(:shout_set_audio_info).with(shout, "bitrate", "128").and_return(0)
         audio_info.bitrate = 128
       end
 
       it "delegates #bitrate to shout_get_audio_info" do
-        expect(::Shout).to receive(:shout_get_audio_info).with(shout, "bitrate").and_return("128")
+        expect(Native).to receive(:shout_get_audio_info).with(shout, "bitrate").and_return("128")
         expect(audio_info.bitrate).to eql "128"
       end
 
       it "delegates #samplerate= to shout_set_audio_info" do
-        expect(::Shout).to receive(:shout_set_audio_info).with(shout, "samplerate", "44100").and_return(0)
+        expect(Native).to receive(:shout_set_audio_info).with(shout, "samplerate", "44100").and_return(0)
         audio_info.samplerate = 44_100
       end
 
       it "delegates #samplerate to shout_get_audio_info" do
-        expect(::Shout).to receive(:shout_get_audio_info).with(shout, "samplerate").and_return("44100")
+        expect(Native).to receive(:shout_get_audio_info).with(shout, "samplerate").and_return("44100")
         expect(audio_info.samplerate).to eql "44100"
       end
 
       it "delegates #channels= to shout_set_audio_info" do
-        expect(::Shout).to receive(:shout_set_audio_info).with(shout, "channels", "2").and_return(0)
+        expect(Native).to receive(:shout_set_audio_info).with(shout, "channels", "2").and_return(0)
         audio_info.channels = 2
       end
 
       it "delegates #channels to shout_get_audio_info" do
-        expect(::Shout).to receive(:shout_get_audio_info).with(shout, "channels").and_return("2")
+        expect(Native).to receive(:shout_get_audio_info).with(shout, "channels").and_return("2")
         expect(audio_info.channels).to eql "2"
       end
 
       it "delegates #quality= to shout_set_audio_info" do
-        expect(::Shout).to receive(:shout_set_audio_info).with(shout, "quality", "5").and_return(0)
+        expect(Native).to receive(:shout_set_audio_info).with(shout, "quality", "5").and_return(0)
         audio_info.quality = 5
       end
 
       it "delegates #quality to shout_get_audio_info" do
-        expect(::Shout).to receive(:shout_get_audio_info).with(shout, "quality").and_return("5")
+        expect(Native).to receive(:shout_get_audio_info).with(shout, "quality").and_return("5")
         expect(audio_info.quality).to eql "5"
       end
 
       it "supports hash-like access via [] and []=" do
-        expect(::Shout).to receive(:shout_set_audio_info).with(shout, "custom", "val").and_return(0)
+        expect(Native).to receive(:shout_set_audio_info).with(shout, "custom", "val").and_return(0)
         audio_info["custom"] = "val"
 
-        expect(::Shout).to receive(:shout_get_audio_info).with(shout, "custom").and_return("val")
+        expect(Native).to receive(:shout_get_audio_info).with(shout, "custom").and_return("val")
         expect(audio_info["custom"]).to eql "val"
       end
     end
@@ -185,71 +185,71 @@ module Shout
       subject(:meta) { configuration.meta }
 
       it "delegates #name= to shout_set_meta" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "name", "My Station").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "name", "My Station").and_return(0)
         meta.name = "My Station"
       end
 
       it "delegates #name to shout_get_meta" do
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "name").and_return("My Station")
+        expect(Native).to receive(:shout_get_meta).with(shout, "name").and_return("My Station")
         expect(meta.name).to eql "My Station"
       end
 
       it "delegates #url= to shout_set_meta" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "url", "http://example.com").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "url", "http://example.com").and_return(0)
         meta.url = "http://example.com"
       end
 
       it "delegates #url to shout_get_meta" do
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "url").and_return("http://example.com")
+        expect(Native).to receive(:shout_get_meta).with(shout, "url").and_return("http://example.com")
         expect(meta.url).to eql "http://example.com"
       end
 
       it "delegates #genre= to shout_set_meta" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "genre", "Rock").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "genre", "Rock").and_return(0)
         meta.genre = "Rock"
       end
 
       it "delegates #genre to shout_get_meta" do
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "genre").and_return("Rock")
+        expect(Native).to receive(:shout_get_meta).with(shout, "genre").and_return("Rock")
         expect(meta.genre).to eql "Rock"
       end
 
       it "delegates #description= to shout_set_meta" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "description", "Best station").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "description", "Best station").and_return(0)
         meta.description = "Best station"
       end
 
       it "delegates #description to shout_get_meta" do
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "description").and_return("Best station")
+        expect(Native).to receive(:shout_get_meta).with(shout, "description").and_return("Best station")
         expect(meta.description).to eql "Best station"
       end
 
       it "delegates #irc= and #irc" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "irc", "#channel").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "irc", "#channel").and_return(0)
         meta.irc = "#channel"
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "irc").and_return("#channel")
+        expect(Native).to receive(:shout_get_meta).with(shout, "irc").and_return("#channel")
         expect(meta.irc).to eql "#channel"
       end
 
       it "delegates #aim= and #aim" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "aim", "my_aim").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "aim", "my_aim").and_return(0)
         meta.aim = "my_aim"
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "aim").and_return("my_aim")
+        expect(Native).to receive(:shout_get_meta).with(shout, "aim").and_return("my_aim")
         expect(meta.aim).to eql "my_aim"
       end
 
       it "delegates #icq= and #icq" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "icq", "123456").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "icq", "123456").and_return(0)
         meta.icq = "123456"
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "icq").and_return("123456")
+        expect(Native).to receive(:shout_get_meta).with(shout, "icq").and_return("123456")
         expect(meta.icq).to eql "123456"
       end
 
       it "supports hash-like access via [] and []=" do
-        expect(::Shout).to receive(:shout_set_meta).with(shout, "custom", "val").and_return(0)
+        expect(Native).to receive(:shout_set_meta).with(shout, "custom", "val").and_return(0)
         meta["custom"] = "val"
 
-        expect(::Shout).to receive(:shout_get_meta).with(shout, "custom").and_return("val")
+        expect(Native).to receive(:shout_get_meta).with(shout, "custom").and_return("val")
         expect(meta["custom"]).to eql "val"
       end
     end
@@ -258,27 +258,27 @@ module Shout
       subject(:content_format) { configuration.content_format }
 
       it "sets content format using integers" do
-        expect(::Shout).to receive(:shout_set_content_format).with(shout, SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO,
-                                                                   nil).and_return(0)
+        expect(Native).to receive(:shout_set_content_format).with(shout, SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO,
+                                                                  nil).and_return(0)
         content_format.set(SHOUT_FORMAT_MP3, SHOUT_USAGE_AUDIO, nil)
       end
 
       it "sets content format using symbols" do
-        expect(::Shout).to receive(:shout_set_content_format).with(shout, :mp3, SHOUT_USAGE_AUDIO, nil).and_return(0)
+        expect(Native).to receive(:shout_set_content_format).with(shout, :mp3, SHOUT_USAGE_AUDIO, nil).and_return(0)
         configuration.set_content_format(:mp3)
       end
 
       it "returns the ContentFormat from #set" do
-        allow(::Shout).to receive(:shout_set_content_format).and_return(0)
+        allow(Native).to receive(:shout_set_content_format).and_return(0)
         expect(content_format.set(:mp3)).to be content_format
       end
 
       it "gets content format, usage, and codecs" do
-        expect(::Shout).to receive(:shout_get_content_format)
+        expect(Native).to receive(:shout_get_content_format)
           .exactly(3).times do |_shout, fmt_ptr, usage_ptr, codecs_ptr|
           fmt_ptr.write_uint(SHOUT_FORMAT_OGG)
           usage_ptr.write_uint(SHOUT_USAGE_AUDIO)
-          codecs_ptr.write_pointer(::FFI::Pointer::NULL)
+          codecs_ptr.write_pointer(FFI::Pointer::NULL)
           0
         end
 
@@ -288,8 +288,8 @@ module Shout
       end
 
       it "gets content format codecs when present" do
-        codec_str_ptr = ::FFI::MemoryPointer.from_string("vorbis")
-        expect(::Shout).to receive(:shout_get_content_format) do |_shout, fmt_ptr, usage_ptr, codecs_ptr|
+        codec_str_ptr = FFI::MemoryPointer.from_string("vorbis")
+        expect(Native).to receive(:shout_get_content_format) do |_shout, fmt_ptr, usage_ptr, codecs_ptr|
           fmt_ptr.write_uint(SHOUT_FORMAT_OGG)
           usage_ptr.write_uint(SHOUT_USAGE_AUDIO)
           codecs_ptr.write_pointer(codec_str_ptr)

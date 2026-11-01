@@ -5,7 +5,7 @@ module Shout
     subject(:metadata) { described_class.new }
 
     it "initializes an empty metadata structure" do
-      expect(metadata.metadata_struct).to be_a(FFI::Metadata)
+      expect(metadata.metadata_struct).to be_a(Native::MetadataHandle)
       expect(metadata.to_h).to eql({})
     end
 

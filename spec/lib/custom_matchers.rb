@@ -103,7 +103,7 @@ RSpec::Matchers.define :delegate do |from|
   end
 
   def check(subject, function, method_name, &block)
-    unless Shout.respond_to?(function)
+    unless Shout::Native.respond_to?(function)
       @problems << "Shout.#{function} does not exist"
       return
     end
@@ -120,7 +120,7 @@ RSpec::Matchers.define :delegate do |from|
   # all calls made to it.
   def record_calls(function)
     calls = []
-    allow(Shout).to receive(function) { |*args| calls << args and 0 }
+    allow(Shout::Native).to receive(function) { |*args| calls << args and 0 }
     yield
     calls
   end

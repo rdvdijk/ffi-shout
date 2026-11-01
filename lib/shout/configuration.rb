@@ -78,11 +78,11 @@ module Shout
     class KeyValueSettings < ConfigurationBase
       def self.settings(getter:, setter:, **keys)
         define_method(:[]) do |key|
-          ::Shout.public_send(getter, shout, key.to_s)
+          Native.public_send(getter, shout, key.to_s)
         end
 
         define_method(:[]=) do |key, value|
-          Error.check_error(::Shout.public_send(setter, shout, key.to_s, value&.to_s), shout)
+          Error.check_error(Native.public_send(setter, shout, key.to_s, value&.to_s), shout)
         end
 
         keys.each { |name, key| define_key_accessors(name, key) }
@@ -120,14 +120,14 @@ module Shout
     class ContentFormat < ConfigurationBase
       def set(format, usage = SHOUT_USAGE_AUDIO, codecs = nil)
         format = Delegation::TypeConvertor.convert(format)
-        Error.check_error(::Shout.shout_set_content_format(shout, format, usage, codecs), shout)
+        Error.check_error(Native.shout_set_content_format(shout, format, usage, codecs), shout)
         self
       end
 
       # The format as a symbol such as :mp3 (or the raw value if unknown).
       def format
         value = info[0]
-        ::Shout.enum_type(:shout_format)[value] || value
+        Native.enum_type(:shout_format)[value] || value
       end
 
       def usage
@@ -141,11 +141,11 @@ module Shout
       private
 
       def info
-        format_ptr = ::FFI::MemoryPointer.new(:uint)
-        usage_ptr  = ::FFI::MemoryPointer.new(:uint)
-        codecs_ptr = ::FFI::MemoryPointer.new(:pointer)
+        format_ptr = FFI::MemoryPointer.new(:uint)
+        usage_ptr  = FFI::MemoryPointer.new(:uint)
+        codecs_ptr = FFI::MemoryPointer.new(:pointer)
 
-        ret = ::Shout.shout_get_content_format(shout, format_ptr, usage_ptr, codecs_ptr)
+        ret = Native.shout_get_content_format(shout, format_ptr, usage_ptr, codecs_ptr)
         Error.check_error(ret, shout)
 
         c_str_ptr = codecs_ptr.read_pointer

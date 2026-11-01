@@ -259,6 +259,18 @@ Shout.version.to_s        # => "2.4.6"
 Shout.version >= "2.4.6"  # => true
 ```
 
+### Low-level libshout Functions
+
+Every function in `shout.h` is attached to `Shout::Native`, an `FFI::Library`, for anything `Shout::Connection` doesn't cover. `Native.shout_new` returns a handle that frees itself when it is garbage collected, and settings with libshout constants take and return symbols:
+
+```ruby
+shout = Shout::Native.shout_new
+Shout::Native.shout_set_protocol(shout, :icy)
+Shout::Native.shout_get_protocol(shout)  # => :icy
+```
+
+These functions return libshout's error codes instead of raising, and their API follows libshout rather than this gem.
+
 ## Development
 
 Make sure you are using Ruby 3.4.12, then install the dependencies:

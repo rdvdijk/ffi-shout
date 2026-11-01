@@ -15,12 +15,11 @@ AllCops:
 # The FFI binding modules are long lists of attach_function / enum
 # declarations; splitting them up would not make them clearer.
 Metrics/AbcSize:
-  Exclude: ["lib/shout/ffi/functions.rb"]
+  Exclude: ["lib/shout/native/functions.rb"]
 Metrics/BlockLength:
-  Exclude: ["lib/shout/ffi/**/*.rb", "spec/**/*.rb", "*.gemspec"]
+  Exclude: ["spec/**/*.rb", "*.gemspec"]
 Metrics/MethodLength:
   Max: 15
-  Exclude: ["lib/shout/ffi/**/*.rb"]
 Metrics/ModuleLength:
   Exclude: ["spec/**/*.rb"]
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Shout
-  RSpec.describe FFI::Enums do
+  RSpec.describe Native do
     describe "Constants" do
       it "defines error constants" do
         expect(SHOUTERR_SUCCESS).to be 0
@@ -93,36 +93,36 @@ module Shout
 
     describe "FFI Enums" do
       it "maps shout_error enum" do
-        expect(::Shout.enum_type(:shout_error)).to be_a(::FFI::Enum)
-        expect(::Shout.enum_type(:shout_error)[:success]).to be 0
+        expect(described_class.enum_type(:shout_error)).to be_a(FFI::Enum)
+        expect(described_class.enum_type(:shout_error)[:success]).to be 0
       end
 
       it "maps shout_format enum" do
-        expect(::Shout.enum_type(:shout_format)).to be_a(::FFI::Enum)
-        expect(::Shout.enum_type(:shout_format)[:mp3]).to be 1
+        expect(described_class.enum_type(:shout_format)).to be_a(FFI::Enum)
+        expect(described_class.enum_type(:shout_format)[:mp3]).to be 1
       end
 
       it "maps shout_protocol enum" do
-        expect(::Shout.enum_type(:shout_protocol)).to be_a(::FFI::Enum)
-        expect(::Shout.enum_type(:shout_protocol)[:http]).to be 0
+        expect(described_class.enum_type(:shout_protocol)).to be_a(FFI::Enum)
+        expect(described_class.enum_type(:shout_protocol)[:http]).to be 0
       end
 
       it "maps shout_tls enum" do
-        expect(::Shout.enum_type(:shout_tls)).to be_a(::FFI::Enum)
-        expect(::Shout.enum_type(:shout_tls)[:auto]).to be 1
+        expect(described_class.enum_type(:shout_tls)).to be_a(FFI::Enum)
+        expect(described_class.enum_type(:shout_tls)[:auto]).to be 1
       end
 
       it "maps shout_blocking enum" do
-        expect(::Shout.enum_type(:shout_blocking)).to be_a(::FFI::Enum)
-        expect(::Shout.enum_type(:shout_blocking)[:none]).to be 1
+        expect(described_class.enum_type(:shout_blocking)).to be_a(FFI::Enum)
+        expect(described_class.enum_type(:shout_blocking)[:none]).to be 1
       end
 
       it "maps shout_control_t enum" do
-        expect(::Shout.enum_type(:shout_control_t)).to be_a(::FFI::Enum)
+        expect(described_class.enum_type(:shout_control_t)).to be_a(FFI::Enum)
       end
 
       it "maps shout_event_t enum" do
-        expect(::Shout.enum_type(:shout_event_t)).to be_a(::FFI::Enum)
+        expect(described_class.enum_type(:shout_event_t)).to be_a(FFI::Enum)
       end
     end
   end
