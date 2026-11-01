@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    # Ubuntu 24.04 ships libshout 2.4.6, the oldest version the gem supports.
+    runs-on: ubuntu-24.04
+    continue-on-error: ${{ matrix.experimental }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version: [ '3.2', '3.3', '3.4', '4.0' ]
+        experimental: [ false ]
+        include:
+          - ruby-version: 'ruby-head'
+            experimental: true
+          - ruby-version: 'jruby'
+            experimental: true
+          - ruby-version: 'truffleruby'
+            experimental: true
+
+    env:
+      COVERAGE: 1
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qq libshout-dev
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - name: Run tests
+        run: bundle exec rake
+
+      - name: Upload coverage to Coveralls
+        if: matrix.ruby-version == '3.4'
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage/lcov.info
