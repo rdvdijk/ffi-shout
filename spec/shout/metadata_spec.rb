@@ -57,7 +57,8 @@ module Shout
     end
 
     it "shows its keys and values in #inspect" do
-      expect(described_class.new(song: "A").inspect).to eql '#<Shout::Metadata {"song" => "A"}>'
+      # Hash#inspect added spaces around => in Ruby 3.4.
+      expect(described_class.new(song: "A").inspect).to eql "#<Shout::Metadata #{{ "song" => "A" }.inspect}>"
     end
 
     it "encodes non-string values to UTF-8 strings" do
