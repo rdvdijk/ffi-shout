@@ -1,13 +1,18 @@
 # frozen_string_literal: true
 
+require_relative "../lib/icecast_settings"
+
+# Needs a local Icecast server (localhost:8000 by default, see
+# IcecastSettings) with a mount point /stream.mp3 configured; see "Running
+# the integration specs" in the README.
 RSpec.describe "Connection Integration", :integration do
   context "connecting to Icecast 2 server" do
     let(:connection) do
       Shout::Connection.new do |c|
-        c.configuration.host = "127.0.0.1"
-        c.configuration.port = 9000
-        c.configuration.mount = "/stream.mp3"
-        c.configuration.user = "source"
+        c.configuration.host = IcecastSettings::HOST
+        c.configuration.port = IcecastSettings::PORT
+        c.configuration.mount = IcecastSettings::MOUNT
+        c.configuration.user = IcecastSettings::SOURCE_USER
         c.configuration.password = "invalid_password"
         c.configuration.protocol = :http
         c.configuration.set_content_format(:mp3)

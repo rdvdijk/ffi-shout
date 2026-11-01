@@ -288,7 +288,32 @@ bundle install
 | `bundle exec rubocop` | Lints the code (`-a` fixes what it safely can) |
 | `COVERAGE=1 bundle exec rspec` | Also writes a coverage report to `coverage/lcov.info` |
 
-The integration specs (`spec/integration`) need a local Icecast server on `localhost:9000` with source password `changeme`. They check their results through `/status-json.xsl`. They are skipped by default; `bundle exec rspec --tag integration` runs them as well.
+### Running the integration specs
+
+The integration specs (`spec/integration`) stream to a real Icecast server and check the results through its `/status-json.xsl` page. They are skipped by default.
+
+They need a local Icecast 2 server with its default settings: port 8000 and source password `hackme`. Configure a mount point `/stream.mp3` in `icecast.xml`:
+
+```xml
+<mount>
+  <mount-name>/stream.mp3</mount-name>
+</mount>
+```
+
+Then start Icecast and run the specs:
+
+```bash
+icecast2 -c /etc/icecast2/icecast.xml   # or `icecast -c ...`, depending on your distribution
+bundle exec rake spec:integration
+```
+
+For a server that is set up differently, override the defaults with `ICECAST_HOST`, `ICECAST_PORT` and `ICECAST_SOURCE_PASSWORD`:
+
+```bash
+ICECAST_PORT=9000 ICECAST_SOURCE_PASSWORD=secret bundle exec rake spec:integration
+```
+
+`bundle exec rspec --tag integration` runs them together with the unit specs. The specs also expect nothing to listen on port 59999, which they use as an unreachable server. They run each connection in a forked process, so they need a platform with `fork` (not Windows).
 
 ## License
 

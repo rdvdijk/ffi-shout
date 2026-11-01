@@ -3,17 +3,21 @@
 require "net/http"
 require "json"
 require "securerandom"
+require_relative "../lib/icecast_settings"
 
-# Helpers for talking to a real Icecast server on localhost:9000 and checking
-# the effects through its public /status-json.xsl page.
+# Helpers for talking to a real Icecast server and checking the effects
+# through its public /status-json.xsl page. The server (localhost:8000 with
+# source password hackme by default, see IcecastSettings) needs a mount point
+# /stream.mp3 configured in icecast.xml. See "Running the integration specs"
+# in the README.
 #
 # Each connection runs in a forked child process. libshout calls block inside
 # C, so a Ruby Timeout can't interrupt them. A child process can always be
 # killed, so a stuck call fails the test instead of hanging the whole suite.
 module IcecastIntegration
-  HOST       = "localhost"
-  PORT       = 9000
-  MOUNT      = "/stream.mp3"
+  HOST       = IcecastSettings::HOST
+  PORT       = IcecastSettings::PORT
+  MOUNT      = IcecastSettings::MOUNT
   STATUS_URI = URI("http://#{HOST}:#{PORT}/status-json.xsl")
   TIMEOUT    = 10
 
@@ -27,8 +31,8 @@ module IcecastIntegration
       c.configuration.host = HOST
       c.configuration.port = PORT
       c.configuration.mount = MOUNT
-      c.configuration.user = "source"
-      c.configuration.password = "changeme"
+      c.configuration.user = IcecastSettings::SOURCE_USER
+      c.configuration.password = IcecastSettings::SOURCE_PASSWORD
       c.configuration.protocol = :http
       c.configuration.set_content_format(:mp3)
     end
