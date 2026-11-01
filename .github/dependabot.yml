@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Gemfile.lock is resolved on Ruby 3.2, the oldest supported version. CI
+  # runs on every pull request, so an update that needs a newer Ruby fails
+  # the 3.2 job.
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

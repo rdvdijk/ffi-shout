@@ -271,39 +271,7 @@ These functions return libshout's error codes instead of raising, and their API 
 
 ## Development
 
-Make sure you are using Ruby 3.4.12, then install the dependencies:
-
-```bash
-chruby 3.4.12
-bundle install
-```
-
-| Command | What it does |
-|---|---|
-| `bundle exec rake` | Runs the unit specs and RuboCop |
-| `bundle exec rspec` | Runs the unit specs only |
-| `bundle exec rake spec:integration` | Runs the integration specs (see below) |
-| `bundle exec rubocop` | Lints the code (`-a` fixes what it safely can) |
-| `COVERAGE=1 bundle exec rspec` | Also writes a coverage report to `coverage/lcov.info` |
-
-### Running the integration specs
-
-The integration specs (`spec/integration`) stream to a real Icecast server and check the results through its `/status-json.xsl` page. They are skipped by default.
-
-They need a local Icecast 2 server with its default settings: port 8000 and source password `hackme`. The specs stream to the mount `/stream.mp3`, which doesn't need to be configured: Icecast accepts sources on any mount unless `icecast.xml` restricts it. Start Icecast and run the specs:
-
-```bash
-icecast2 -c /etc/icecast2/icecast.xml   # or `icecast -c ...`, depending on your distribution
-bundle exec rake spec:integration
-```
-
-For a server that is set up differently, override the defaults with `ICECAST_HOST`, `ICECAST_PORT` and `ICECAST_SOURCE_PASSWORD`:
-
-```bash
-ICECAST_PORT=9000 ICECAST_SOURCE_PASSWORD=secret bundle exec rake spec:integration
-```
-
-`bundle exec rspec --tag integration` runs them together with the unit specs. The specs also expect nothing to listen on port 59999, which they use as an unreachable server. They run each connection in a forked process, so they need a platform with `fork` (not Windows).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up the project, run the specs (including the integration specs against a local Icecast server) and which Ruby versions changes need to support.
 
 ## License
 
