@@ -18,11 +18,6 @@ module Shout
       expect(RetryError.ancestors).to include(ShoutError)
     end
 
-    it "keeps Shout::SocketError as a deprecated alias of SocketIOError" do
-      expect(::Shout.const_get(:SocketError)).to be SocketIOError
-      expect(::Shout.const_get(:SocketError)).not_to be ::SocketError
-    end
-
     describe ".check_error" do
       it "does not raise on 0 (success)" do
         expect { described_class.check_error(0) }.not_to raise_error

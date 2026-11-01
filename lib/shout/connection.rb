@@ -156,6 +156,5 @@ module Shout
     end
   end
 
-  # Alias Client to Connection for convenience
   Client = Connection
 end

@@ -44,10 +44,8 @@ module Shout
       end
     end
 
-    # Converts Ruby values to what libshout's setters expect. Booleans become
-    # 1 / 0; symbols for formats, protocols, TLS and blocking modes are
-    # converted by the FFI enums in Shout::Native, which also make the
-    # matching readers return symbols such as :mp3.
+    # Converts Ruby values to what libshout's setters expect. Enum symbols
+    # such as :mp3 are left to the FFI enums in Shout::Native.
     class TypeConvertor
       # Symbols that libshout treats as another name for the same value.
       ALIASES = { vorbis: :ogg }.freeze

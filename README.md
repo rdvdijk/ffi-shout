@@ -248,8 +248,6 @@ Every libshout error is raised as a subclass of `Shout::ShoutError`, so `rescue 
 | `Shout::TLSBadCertError` | `SHOUTERR_TLSBADCERT`: the server's TLS certificate failed verification |
 | `Shout::RetryError` | `SHOUTERR_RETRY`: try again |
 
-`Shout::SocketIOError` used to be called `Shout::SocketError`. The old name still works but is deprecated, because inside `module Shout` it hid Ruby's own `::SocketError`.
-
 ### libshout Version
 
 `Shout.version` describes the loaded libshout library:

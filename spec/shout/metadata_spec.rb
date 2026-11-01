@@ -5,7 +5,7 @@ module Shout
     subject(:metadata) { described_class.new }
 
     it "initializes an empty metadata structure" do
-      expect(metadata.metadata_struct).to be_a(Native::MetadataHandle)
+      expect(metadata.handle).to be_a(Native::MetadataHandle)
       expect(metadata.to_h).to eql({})
     end
 
@@ -32,10 +32,6 @@ module Shout
 
     it "returns to_ptr matching the libshout handle" do
       expect(metadata.to_ptr).to eql metadata.handle.to_ptr
-    end
-
-    it "keeps #metadata_struct as an alias of #handle" do
-      expect(metadata.metadata_struct).to be metadata.handle
     end
 
     it "yields each key and value and is Enumerable" do

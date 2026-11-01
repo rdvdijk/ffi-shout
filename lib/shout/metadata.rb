@@ -9,9 +9,6 @@ module Shout
     # The libshout shout_metadata_t handle (a Native::MetadataHandle).
     attr_reader :handle
 
-    # Deprecated name for #handle, from when it was an FFI struct.
-    alias metadata_struct handle
-
     def initialize(attributes = {})
       @handle = Native.shout_metadata_new
       @attributes = {}
@@ -36,7 +33,6 @@ module Shout
       @attributes[key.to_s]
     end
 
-    # Yields each key and value.
     def each(&)
       return enum_for(:each) { @attributes.size } unless block_given?
 

@@ -14,7 +14,6 @@ require "shout/connection"
 # Ruby bindings for libshout, the streaming library for Icecast. Start with
 # Shout::Connection; the raw libshout functions live in Shout::Native.
 module Shout
-  # Initialize the shout library
   Native.shout_init
 
   # The version of the loaded libshout library.

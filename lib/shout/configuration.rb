@@ -28,8 +28,8 @@ module Shout
 
     delegate_to_shout :public, predicate: true
 
-    # Obsolete libshout settings, kept for backwards compatibility. Their
-    # writers print a deprecation warning (shown with `ruby -W:deprecated`).
+    # Settings that libshout marks obsolete. Their writers print a deprecation
+    # warning (shown with `ruby -W:deprecated`).
     OBSOLETE_SETTINGS = {
       name: "meta.name=",
       url: "meta.url=",
@@ -51,7 +51,6 @@ module Shout
       end
     end)
 
-    # True when libshout is set to non-blocking I/O.
     def nonblocking?
       nonblocking == :none
     end

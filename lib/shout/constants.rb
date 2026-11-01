@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-# The integer and string constants from shout.h. They are public: settings
-# accept them as well as symbols (e.g. SHOUT_USAGE_AUDIO for set_content_format).
+# The integer and string constants from shout.h.
 module Shout
   SHOUTERR_SUCCESS = 0
   SHOUTERR_INSANE             = -1

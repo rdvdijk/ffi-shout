@@ -4,9 +4,7 @@ require "shout/constants"
 require "shout/library_version"
 
 module Shout
-  # The libshout bindings: an FFI::Library with an attach_function for every
-  # function in shout.h, such as Native.shout_open. This is the internal,
-  # low-level layer; the public API is Shout::Connection and friends.
+  # The libshout bindings: an FFI::Library with every function in shout.h.
   module Native
     extend FFI::Library
 
