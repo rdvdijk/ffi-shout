@@ -290,15 +290,7 @@ bundle install
 
 The integration specs (`spec/integration`) stream to a real Icecast server and check the results through its `/status-json.xsl` page. They are skipped by default.
 
-They need a local Icecast 2 server with its default settings: port 8000 and source password `hackme`. Configure a mount point `/stream.mp3` in `icecast.xml`:
-
-```xml
-<mount>
-  <mount-name>/stream.mp3</mount-name>
-</mount>
-```
-
-Then start Icecast and run the specs:
+They need a local Icecast 2 server with its default settings: port 8000 and source password `hackme`. The specs stream to the mount `/stream.mp3`, which doesn't need to be configured: Icecast accepts sources on any mount unless `icecast.xml` restricts it. Start Icecast and run the specs:
 
 ```bash
 icecast2 -c /etc/icecast2/icecast.xml   # or `icecast -c ...`, depending on your distribution

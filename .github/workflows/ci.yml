@@ -58,3 +58,55 @@ jobs:
         uses: coverallsapp/github-action@v2
         with:
           file: coverage/lcov.info
+
+  integration:
+    # Streams to a real Icecast server: 2.4.4 on Ubuntu 24.04, 2.5.0 on
+    # Ubuntu 26.04, both with the package's default settings: port 8000,
+    # source password hackme.
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-24.04, ubuntu-26.04 ]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq libshout-dev icecast2
+
+      # Run Icecast as the runner user rather than as the system service, so
+      # the job doesn't depend on whether the package started it. The config
+      # is the package's own, with only the log directory changed.
+      - name: Start Icecast
+        run: |
+          sudo systemctl stop icecast2 || true
+          mkdir -p "$RUNNER_TEMP/icecast"
+          sudo cat /etc/icecast2/icecast.xml \
+            | sed "s|<logdir>.*</logdir>|<logdir>$RUNNER_TEMP/icecast</logdir>|" \
+            > "$RUNNER_TEMP/icecast.xml"
+          chmod 600 "$RUNNER_TEMP/icecast.xml"
+          icecast2 -b -c "$RUNNER_TEMP/icecast.xml"
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8000/status-json.xsl > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Icecast did not start" >&2
+          exit 1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: Run integration specs
+        run: bundle exec rake spec:integration
+
+      - name: Show Icecast logs
+        if: failure()
+        run: cat "$RUNNER_TEMP"/icecast/*.log
