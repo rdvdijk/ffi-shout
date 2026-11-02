@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1
 
 - Fix `Connection#delay` raising a bogus `Shout::MetadataError` when the stream is behind schedule; it now returns the negative delay.
 

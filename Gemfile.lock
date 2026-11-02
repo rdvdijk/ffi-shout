@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ffi-shout (0.1.0)
+    ffi-shout (0.1.1)
       ffi (~> 1.15)
 
 GEM
@@ -142,7 +142,7 @@ CHECKSUMS
   ffi (1.17.4-x86_64-darwin) sha256=aa70390523cf3235096cf64962b709b4cfbd5c082a2cb2ae714eb0fe2ccda496
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
   ffi (1.17.4-x86_64-linux-musl) sha256=3fdf9888483de005f8ef8d1cf2d3b20d86626af206cbf780f6a6a12439a9c49e
-  ffi-shout (0.1.0)
+  ffi-shout (0.1.1)
   io-console (0.9.5) sha256=83dd9bbf4c4680416629245b39cd4212eb5f4d9a4ea91804870c1f6b846414d5
   io-console (0.9.5-java) sha256=34b74ec7d8e39a526fb9a82aa34853257a1baa08f56c5cd5d37ec6be2a5e6000
   json (3.1.0) sha256=3ce7ccf8fde58960177a3a756c31f292a4c1e1dedee884547096a5b0604e3bd8
