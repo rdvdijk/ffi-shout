@@ -96,7 +96,7 @@ module Shout
 
     # Milliseconds to wait before sending more data.
     def delay
-      Native.shout_delay(shout).tap { |ret| Error.check_error(ret, shout) }
+      Native.shout_delay(shout)
     end
 
     # Updates the stream's metadata. Accepts a Metadata, a Hash or a String
