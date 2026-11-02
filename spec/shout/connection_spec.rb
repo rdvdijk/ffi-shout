@@ -179,6 +179,11 @@ module Shout
         expect(connection.delay).to be 50
       end
 
+      it "returns a negative delay when behind schedule instead of raising" do
+        expect(Native).to receive(:shout_delay).with(connection.shout).and_return(-5)
+        expect(connection.delay).to be(-5)
+      end
+
       it "gets queue length via shout_queuelen" do
         expect(Native).to receive(:shout_queuelen).with(connection.shout).and_return(1024)
         expect(connection.queuelen).to be 1024
